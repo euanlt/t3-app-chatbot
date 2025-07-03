@@ -159,7 +159,7 @@ function formatMessage(level: string, component: string, message: string): strin
   // Redact any sensitive data in the message
   const safeMessage = redactSensitiveData(message);
   
-  return `[${coloredTimestamp}] [${levelColor}] [${coloredComponent}] ${safeMessage}`;
+  return `[${coloredTimestamp}] [${levelColor}] [${coloredComponent}] ${String(safeMessage)}`;
 }
 
 /**
@@ -174,18 +174,16 @@ function safeStringify(obj: unknown): string {
   const seen = new WeakSet();
   return JSON.stringify(redactedObj, (_key, value) => {
     if (typeof value === 'object' && value !== null) {
-      if (seen.has(value)) {
+      if (seen.has(value as object)) {
         return '[Circular]';
       }
-      seen.add(value);
+      seen.add(value as object);
     }
     return value;
   }, 2);
 }
 
-interface LogContext {
-  [key: string]: unknown;
-}
+type LogContext = Record<string, unknown>;
 
 /**
  * Logger class with methods for different log levels
@@ -211,7 +209,7 @@ export class Logger {
       if (error) {
         if (error instanceof Error && error.stack) {
           // Redact sensitive data from stack traces
-          console.error(`${COLORS.RED}${redactSensitiveData(error.stack)}${COLORS.RESET}`);
+          console.error(`${COLORS.RED}${String(redactSensitiveData(error.stack))}${COLORS.RESET}`);
         } else if (typeof error === 'object') {
           // For context objects, redact and stringify
           console.error('Error context:', safeStringify(error));

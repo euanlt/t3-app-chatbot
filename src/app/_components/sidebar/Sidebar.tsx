@@ -25,8 +25,8 @@ export default function Sidebar({
   const { data: modelsData } = api.models.getAvailableModels.useQuery();
   const { data: mcpServersData } = api.mcp.getAvailableServers.useQuery();
   
-  const models = modelsData?.models || [];
-  const mcpServers = mcpServersData?.servers || [];
+  const models = modelsData?.models ?? [];
+  const mcpServers = mcpServersData?.servers ?? [];
 
   const handleFileInput = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {

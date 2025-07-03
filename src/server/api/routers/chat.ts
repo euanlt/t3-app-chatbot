@@ -27,13 +27,13 @@ export const chatRouter = createTRPCRouter({
       try {
         logger.info("Processing chat message", {
           messageLength: input.message.length,
-          model: input.model || "default",
+          model: input.model ?? "default",
           hasFileContext: !!input.fileContext,
           hasMcpContext: input.mcpContext.length > 0
         });
 
         // Log the model being used
-        const modelToUse = input.model || 'mistralai/mistral-small-3.2-24b-instruct:free';
+        const modelToUse = input.model ?? 'mistralai/mistral-small-3.2-24b-instruct:free';
         logger.info("Using model", { model: modelToUse });
 
         // Call the AI service

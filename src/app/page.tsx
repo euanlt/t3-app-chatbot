@@ -19,8 +19,7 @@ export default function Home() {
     // TODO: Implement actual file upload and processing
     const newFiles: UploadedFile[] = [];
     
-    for (let i = 0; i < files.length; i++) {
-      const file = files[i];
+    for (const file of files) {
       if (file) {
         newFiles.push({
           id: generateUUID(),

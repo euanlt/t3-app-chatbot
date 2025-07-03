@@ -6,7 +6,7 @@ import { TRPCError } from "@trpc/server";
 const logger = createLogger("FilesRouter");
 
 // File metadata schema
-const fileMetadataSchema = z.object({
+const _fileMetadataSchema = z.object({
   id: z.string(),
   filename: z.string(),
   mimetype: z.string(),

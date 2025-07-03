@@ -6,7 +6,7 @@ import { TRPCError } from "@trpc/server";
 const logger = createLogger("MCPRouter");
 
 // MCP Server schema
-const mcpServerSchema = z.object({
+const _mcpServerSchema = z.object({
   id: z.string(),
   name: z.string(),
   description: z.string(),

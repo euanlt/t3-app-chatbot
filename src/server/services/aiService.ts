@@ -3,7 +3,7 @@ import { env } from '~/env';
 import { createLogger } from './logger';
 import type { Logger } from './logger';
 
-const logger = createLogger('AiService');
+// const logger = createLogger('AiService');
 
 // OpenRouter API base URL
 const OPENROUTER_API_URL = 'https://openrouter.ai/api/v1';
@@ -61,14 +61,14 @@ export class AiService {
         this.logger.debug('Making API request', {
           method: config.method,
           url: config.url,
-          model: config.data?.model
+          model: (config.data as { model?: string })?.model
         });
         
         return config;
       },
       (error) => {
         this.logger.error('Request error', error instanceof Error ? error : { error });
-        return Promise.reject(error);
+        return Promise.reject(error as Error);
       }
     );
 
@@ -77,17 +77,17 @@ export class AiService {
       (response) => {
         this.logger.debug('API response received', {
           status: response.status,
-          model: response.data?.model
+          model: (response.data as { model?: string })?.model
         });
         return response;
       },
       (error) => {
         this.logger.error('Response error', {
-          status: error.response?.status,
-          message: error.message,
-          data: error.response?.data
+          status: (error as any).response?.status,
+          message: (error as Error).message,
+          data: (error as any).response?.data
         });
-        return Promise.reject(error);
+        return Promise.reject(error as Error);
       }
     );
   }
@@ -182,7 +182,7 @@ export class AiService {
           throw new Error('Insufficient credits. Please add credits to your OpenRouter account.');
         }
         
-        const errorMessage = error.response?.data?.error?.message || error.message;
+        const errorMessage = (error.response?.data as any)?.error?.message ?? error.message;
         throw new Error(`OpenRouter API error: ${errorMessage}`);
       }
       

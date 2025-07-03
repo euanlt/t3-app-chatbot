@@ -74,7 +74,7 @@ export default function ChatWindow({ selectedModel, uploadedFiles }: ChatWindowP
       setMessages(prev => [...prev, userMessage]);
 
       // Prepare file context
-      const fileContext = uploadedFiles?.map(f => f.content || '').join('\n\n') || '';
+      const fileContext = uploadedFiles?.map(f => f.content ?? '').join('\n\n') ?? '';
 
       // Send message via tRPC
       sendMessage.mutate({
