@@ -67,7 +67,7 @@ export class AiService {
         return config;
       },
       (error) => {
-        this.logger.error('Request error', error);
+        this.logger.error('Request error', error instanceof Error ? error : { error });
         return Promise.reject(error);
       }
     );

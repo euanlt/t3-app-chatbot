@@ -122,7 +122,7 @@ export const modelsRouter = createTRPCRouter({
           totalCount: curatedModels.length
         };
       } catch (error) {
-        logger.error("Error fetching models", error);
+        logger.error("Error fetching models", error instanceof Error ? error : { error });
         // Return curated list as fallback
         return {
           models: curatedModels,
