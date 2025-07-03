@@ -179,7 +179,7 @@ function safeStringify(obj: unknown): string {
       }
       seen.add(value as object);
     }
-    return value;
+    return value as unknown;
   }, 2);
 }
 

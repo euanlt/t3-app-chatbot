@@ -6,6 +6,7 @@ import { TRPCError } from "@trpc/server";
 const logger = createLogger("MCPRouter");
 
 // MCP Server schema
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const _mcpServerSchema = z.object({
   id: z.string(),
   name: z.string(),

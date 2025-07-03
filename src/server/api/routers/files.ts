@@ -6,6 +6,7 @@ import { TRPCError } from "@trpc/server";
 const logger = createLogger("FilesRouter");
 
 // File metadata schema
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const _fileMetadataSchema = z.object({
   id: z.string(),
   filename: z.string(),

@@ -81,13 +81,14 @@ export class AiService {
         });
         return response;
       },
-      (error) => {
+      (error: unknown) => {
+        const err = error as { response?: { status?: number; data?: unknown }; message?: string };
         this.logger.error('Response error', {
-          status: (error as any).response?.status,
-          message: (error as Error).message,
-          data: (error as any).response?.data
+          status: err.response?.status,
+          message: err.message ?? 'Unknown error',
+          data: err.response?.data
         });
-        return Promise.reject(error as Error);
+        return Promise.reject(error instanceof Error ? error : new Error('Unknown error'));
       }
     );
   }
@@ -182,7 +183,8 @@ export class AiService {
           throw new Error('Insufficient credits. Please add credits to your OpenRouter account.');
         }
         
-        const errorMessage = (error.response?.data as any)?.error?.message ?? error.message;
+        const responseData = error.response?.data as { error?: { message?: string } } | undefined;
+        const errorMessage = responseData?.error?.message ?? error.message;
         throw new Error(`OpenRouter API error: ${errorMessage}`);
       }
       
