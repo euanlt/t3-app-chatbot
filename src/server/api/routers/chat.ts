@@ -52,7 +52,7 @@ export const chatRouter = createTRPCRouter({
 
         return response;
       } catch (error) {
-        logger.error("Error processing chat message", error);
+        logger.error("Error processing chat message", error instanceof Error ? error : { error });
         
         if (error instanceof Error) {
           throw new TRPCError({
