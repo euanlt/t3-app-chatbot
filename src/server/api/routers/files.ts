@@ -17,7 +17,7 @@ const _fileMetadataSchema = z.object({
   error: z.string().optional()
 });
 
-export type FileMetadata = z.infer<typeof fileMetadataSchema>;
+export type FileMetadata = z.infer<typeof _fileMetadataSchema>;
 
 // Supported file types
 const SUPPORTED_TYPES = {

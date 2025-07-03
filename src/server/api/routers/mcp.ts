@@ -16,7 +16,7 @@ const _mcpServerSchema = z.object({
   config: z.record(z.any()).optional()
 });
 
-export type MCPServer = z.infer<typeof mcpServerSchema>;
+export type MCPServer = z.infer<typeof _mcpServerSchema>;
 
 // Available MCP servers configuration
 const availableServers: MCPServer[] = [
