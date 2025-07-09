@@ -45,3 +45,20 @@ jobs:
           exit 1
         fi
         echo "Build successful - .next directory exists"
+    
+    - name: Install Vercel CLI
+      run: npm install -g vercel@latest
+    
+    - name: Run Vercel build (exact deployment simulation)
+      run: vercel build --token=${{ secrets.VERCEL_TOKEN }} --yes
+      env:
+        VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+        VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+    
+    - name: Check for Vercel build artifacts
+      run: |
+        if [ ! -d ".vercel/output" ]; then
+          echo "Vercel build failed - no .vercel/output directory found"
+          exit 1
+        fi
+        echo "Vercel build successful - .vercel/output directory exists"
