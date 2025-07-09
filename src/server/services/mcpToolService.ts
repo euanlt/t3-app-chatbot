@@ -1,6 +1,5 @@
 import { createLogger } from "./logger";
 import { mcpClient } from "./mcpClient";
-import type { MCPServerConfig } from "../api/routers/mcp";
 
 const logger = createLogger("MCPToolService");
 
@@ -61,7 +60,8 @@ export class MCPToolService {
             lowerMessage.includes("what files")) {
           shouldUseTool = true;
           // Extract path from message
-          const pathMatch = message.match(/['"](.*?)['"]/);
+          const pathPattern = /['"](.*?)['"]/;
+          const pathMatch = pathPattern.exec(message);
           if (pathMatch) {
             args.path = pathMatch[1];
           }
@@ -158,7 +158,7 @@ export class MCPToolService {
         // Format based on result type
         if (typeof result === "string") {
           return `${header}\n${result}`;
-        } else if (typeof result === "object") {
+        } else if (typeof result === "object" && result !== null) {
           return `${header}\n${JSON.stringify(result, null, 2)}`;
         } else {
           return `${header}\n${String(result)}`;

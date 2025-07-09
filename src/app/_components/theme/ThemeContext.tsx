@@ -19,7 +19,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     const savedTheme = localStorage.getItem('theme') as Theme | null;
     const systemTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
     
-    const initialTheme = savedTheme || systemTheme;
+    const initialTheme = savedTheme ?? systemTheme;
     setTheme(initialTheme);
     
     // Apply theme to document

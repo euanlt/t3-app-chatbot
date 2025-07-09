@@ -48,12 +48,12 @@ export default function EditServerDialog({ server, isOpen, onClose, onServerUpda
         name: server.name,
         description: server.description,
         transport: server.transport,
-        command: server.command || '',
-        args: server.args?.join(' ') || '',
+        command: server.command ?? '',
+        args: server.args?.join(' ') ?? '',
         env: server.env ? Object.entries(server.env).map(([k, v]) => `${k}=${v}`).join('\n') : '',
-        url: server.url || '',
-        authType: server.auth?.type || 'none',
-        authToken: server.auth?.token || ''
+        url: server.url ?? '',
+        authType: server.auth?.type ?? 'none',
+        authToken: server.auth?.token ?? ''
       });
       setNeedsRestart(false);
     }

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from 'react';
-import { FaRobot, FaFileAlt, FaPlug, FaCog, FaPlus, FaPlay, FaStop, FaTrash, FaEdit } from 'react-icons/fa';
+import { FaRobot, FaFileAlt, FaPlug, FaPlus, FaPlay, FaStop, FaTrash, FaEdit } from 'react-icons/fa';
 import { api } from "~/trpc/react";
 import ThemeToggle from "~/app/_components/theme/ThemeToggle";
 import AddServerDialog from "~/app/_components/mcp/AddServerDialog";
@@ -345,7 +345,7 @@ export default function Sidebar({
       
       {/* Edit Server Dialog */}
       <EditServerDialog
-        server={editingServer ? mcpServers.find(s => s.id === editingServer) || null : null}
+        server={editingServer ? mcpServers.find(s => s.id === editingServer) ?? null : null}
         isOpen={!!editingServer}
         onClose={() => setEditingServer(null)}
         onServerUpdated={() => void refetchServers()}

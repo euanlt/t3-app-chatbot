@@ -2,7 +2,6 @@ import axios from 'axios';
 import { env } from '~/env';
 import { createLogger } from './logger';
 import type { Logger } from './logger';
-import { mcpToolService } from './mcpToolService';
 import { aiToolIntegration } from './aiToolIntegration';
 
 // const logger = createLogger('AiService');
@@ -188,7 +187,7 @@ export class AiService {
 
       // Make the API request
       const response = await this.apiClient.post<ChatCompletionResponse>('/chat/completions', {
-        model: modelId || 'mistralai/mistral-small-3.2-24b-instruct:free',
+        model: modelId ?? 'mistralai/mistral-small-3.2-24b-instruct:free',
         messages: messages,
         max_tokens: 3000,
         temperature: 0.7,

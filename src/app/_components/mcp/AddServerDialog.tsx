@@ -136,10 +136,10 @@ export default function AddServerDialog({ isOpen, onClose, onServerAdded }: AddS
                   name: template.name,
                   description: template.description,
                   transport: template.transport,
-                  command: template.command || '',
-                  args: template.args?.join(' ') || '',
+                  command: template.command ?? '',
+                  args: template.args?.join(' ') ?? '',
                   env: template.env ? Object.entries(template.env).map(([k, v]) => `${k}=${v}`).join('\n') : '',
-                  url: template.url || '',
+                  url: template.url ?? '',
                   authType: 'none',
                   authToken: ''
                 });

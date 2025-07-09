@@ -12,8 +12,8 @@ interface MCPToolIndicatorProps {
 export default function MCPToolIndicator({ message, onToolsDetected }: MCPToolIndicatorProps) {
   const [showTools, setShowTools] = useState(false);
   
-  // Get available tools
-  const { data: availableTools } = api.mcp.getAvailableTools.useQuery();
+  // Get available tools (commented out as not currently used)
+  // const { data: availableTools } = api.mcp.getAvailableTools.useQuery();
   
   // Search for relevant tools based on message
   const { data: searchResults } = api.mcp.searchTools.useQuery(

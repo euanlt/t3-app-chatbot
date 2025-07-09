@@ -1,6 +1,5 @@
 import { createLogger } from "./logger";
 import { mcpClient } from "./mcpClient";
-import type { ChatMessage } from "./aiService";
 
 const logger = createLogger("AIToolIntegration");
 
@@ -73,7 +72,7 @@ If no tools are needed, respond with:
    */
   async determineToolUsage(
     userMessage: string,
-    modelId: string
+    _modelId: string
   ): Promise<ToolDecision[]> {
     try {
       const availableTools = mcpClient.getAllTools();
@@ -122,7 +121,7 @@ If no tools are needed, respond with:
             ];
             
             for (const pattern of patterns) {
-              const match = userMessage.match(pattern);
+              const match = pattern.exec(userMessage);
               if (match?.[1]) {
                 query = match[1].trim().replace(/\?+$/, ''); // Remove trailing question marks
                 break;
@@ -285,11 +284,18 @@ If no tools are needed, respond with:
           resultStr = r.result;
         } else if (r.result && typeof r.result === "object") {
           // Handle different result formats
-          const res = r.result as any;
+          const res = r.result as Record<string, unknown>;
           if (res.content) {
-            resultStr = Array.isArray(res.content) 
-              ? res.content.map((c: any) => c.text || JSON.stringify(c)).join("\n")
-              : res.content;
+            if (Array.isArray(res.content)) {
+              resultStr = res.content.map((c: unknown) => {
+                if (typeof c === 'object' && c !== null && 'text' in c) {
+                  return (c as { text: string }).text;
+                }
+                return JSON.stringify(c);
+              }).join("\n");
+            } else {
+              resultStr = String(res.content);
+            }
           } else {
             resultStr = JSON.stringify(r.result, null, 2);
           }
