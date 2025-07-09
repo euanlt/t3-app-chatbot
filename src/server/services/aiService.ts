@@ -2,15 +2,27 @@ import axios from 'axios';
 import { env } from '~/env';
 import { createLogger } from './logger';
 import type { Logger } from './logger';
+import { mcpToolService } from './mcpToolService';
+import { aiToolIntegration } from './aiToolIntegration';
 
 // const logger = createLogger('AiService');
 
 // OpenRouter API base URL
 const OPENROUTER_API_URL = 'https://openrouter.ai/api/v1';
 
-interface ChatMessage {
+export interface ChatMessage {
   role: 'system' | 'user' | 'assistant';
   content: string;
+}
+
+export interface MCPToolUsage {
+  toolName: string;
+  serverName: string;
+  serverId: string;
+  success: boolean;
+  executionTime: number;
+  error?: string;
+  timestamp: Date;
 }
 
 interface ChatCompletionResponse {
@@ -103,6 +115,51 @@ export class AiService {
     fileContext = '',
     mcpContext: unknown[] = []
   ) {
+    // First, check if we should use any MCP tools
+    let toolResults = '';
+    const mcpToolsUsed: MCPToolUsage[] = [];
+    
+    try {
+      // Use AI to determine which tools to use
+      const toolDecisions = await aiToolIntegration.determineToolUsage(message, modelId);
+      
+      if (toolDecisions.length > 0) {
+        this.logger.info('AI decided to use MCP tools', { 
+          count: toolDecisions.length,
+          tools: toolDecisions.map(d => `${d.serverName}/${d.toolName}`)
+        });
+        
+        // Execute the tools and track usage
+        const startTime = Date.now();
+        const { results, formattedResults } = await aiToolIntegration.executeToolDecisionsWithTracking(toolDecisions);
+        toolResults = formattedResults;
+        
+        // Convert results to MCPToolUsage format
+        for (const result of results) {
+          mcpToolsUsed.push({
+            toolName: result.toolName,
+            serverName: result.serverName,
+            serverId: result.serverId,
+            success: result.success,
+            executionTime: result.executionTime || (Date.now() - startTime),
+            error: result.error,
+            timestamp: new Date()
+          });
+        }
+        
+        this.logger.info('MCP tool results obtained', {
+          resultLength: toolResults.length,
+          toolsExecuted: mcpToolsUsed.length,
+          preview: toolResults.substring(0, 100)
+        });
+      } else {
+        this.logger.debug('No MCP tools needed for this message');
+      }
+    } catch (error) {
+      this.logger.error('Failed to execute MCP tools', {
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
     // Debug log
     this.logger.info('getChatCompletion called', {
       modelId,
@@ -119,8 +176,8 @@ export class AiService {
     }
 
     try {
-      // Format messages for the API
-      const messages = this.formatMessages(message, chatHistory, fileContext, mcpContext);
+      // Format messages for the API with tool results
+      const messages = this.formatMessages(message, chatHistory, fileContext, mcpContext, toolResults);
       
       this.logger.info('Sending chat completion request', {
         model: modelId,
@@ -170,7 +227,8 @@ export class AiService {
         text: aiResponse,
         model: response.data.model || modelId,
         timestamp: new Date(),
-        usage: response.data.usage
+        usage: response.data.usage,
+        mcpToolsUsed
       };
 
     } catch (error) {
@@ -199,12 +257,13 @@ export class AiService {
     message: string,
     chatHistory: Array<{ sender: 'user' | 'ai'; message: string }>,
     fileContext: string,
-    mcpContext: unknown[]
+    mcpContext: unknown[],
+    toolResults = ''
   ): ChatMessage[] {
     const messages: ChatMessage[] = [];
 
     // System message
-    let systemContent = 'You are a helpful AI assistant.';
+    let systemContent = 'You are a helpful AI assistant with the ability to access real-time information through external tools.';
     
     if (fileContext) {
       systemContent += `\n\nThe user has provided the following file content:\n${fileContext}`;
@@ -212,6 +271,10 @@ export class AiService {
     
     if (mcpContext && mcpContext.length > 0) {
       systemContent += `\n\nAdditional context from plugins:\n${JSON.stringify(mcpContext, null, 2)}`;
+    }
+    
+    if (toolResults) {
+      systemContent += `\n\n=== REAL-TIME INFORMATION RETRIEVED ===\nYou have successfully retrieved current, real-time information using external tools. This is NOT cached or historical data - it was just fetched moments ago.\n\n${toolResults}\n\n=== IMPORTANT INSTRUCTIONS ===\n1. Use the above real-time information to answer the user's question\n2. Present the information as current and up-to-date\n3. Do NOT say you cannot access the internet or browse the web - you just did!\n4. Cite the information naturally in your response\n5. The search results above are from live web sources`;
     }
 
     messages.push({ role: 'system', content: systemContent });

@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from 'react';
 import { IoSend } from 'react-icons/io5';
 import ReactMarkdown from 'react-markdown';
 import { api } from "~/trpc/react";
+import MCPUsageIndicator, { type MCPToolUsage } from './MCPUsageIndicator';
 
 interface Message {
   id: string;
@@ -11,6 +12,7 @@ interface Message {
   message: string;
   timestamp: Date;
   model?: string;
+  mcpToolsUsed?: MCPToolUsage[];
 }
 
 interface ChatWindowProps {
@@ -33,7 +35,8 @@ export default function ChatWindow({ selectedModel, uploadedFiles }: ChatWindowP
         sender: 'ai',
         message: response.text,
         timestamp: response.timestamp,
-        model: response.model
+        model: response.model,
+        mcpToolsUsed: response.mcpToolsUsed
       };
       setMessages(prev => [...prev, aiMessage]);
     },
@@ -101,11 +104,11 @@ export default function ChatWindow({ selectedModel, uploadedFiles }: ChatWindowP
   };
 
   return (
-    <div className="flex flex-col h-full bg-gray-50">
+    <div className="flex flex-col h-full bg-chat">
       {/* Messages Area */}
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
         {messages.length === 0 ? (
-          <div className="text-center text-gray-500 mt-8">
+          <div className="text-center text-secondary mt-8">
             <p className="text-lg">Welcome to AI Chatbot</p>
             <p className="text-sm mt-2">Start a conversation by typing a message below</p>
           </div>
@@ -116,12 +119,12 @@ export default function ChatWindow({ selectedModel, uploadedFiles }: ChatWindowP
               className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}
             >
               <div
-                className={`max-w-[70%] rounded-lg p-3 ${
+                className={`max-w-[70%] rounded-lg p-3 shadow-theme-sm ${
                   msg.sender === 'user'
-                    ? 'bg-blue-600 text-white'
+                    ? 'bg-user-message text-user-message'
                     : msg.model === 'error'
                     ? 'bg-red-50 border border-red-200 text-red-700'
-                    : 'bg-white border border-gray-200'
+                    : 'bg-ai-message border border-primary text-ai-message'
                 }`}
               >
                 {msg.sender === 'ai' ? (
@@ -131,6 +134,12 @@ export default function ChatWindow({ selectedModel, uploadedFiles }: ChatWindowP
                 ) : (
                   <p className="whitespace-pre-wrap">{msg.message}</p>
                 )}
+                
+                {/* MCP Usage Indicator */}
+                {msg.sender === 'ai' && msg.mcpToolsUsed && msg.mcpToolsUsed.length > 0 && (
+                  <MCPUsageIndicator toolsUsed={msg.mcpToolsUsed} />
+                )}
+                
                 {msg.model && (
                   <p className="text-xs opacity-70 mt-1">
                     {msg.model}
@@ -142,11 +151,11 @@ export default function ChatWindow({ selectedModel, uploadedFiles }: ChatWindowP
         )}
         {sendMessage.isPending && (
           <div className="flex justify-start">
-            <div className="bg-white border border-gray-200 rounded-lg p-3">
+            <div className="bg-ai-message border border-primary rounded-lg p-3 shadow-theme-sm">
               <div className="flex space-x-2">
-                <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
-                <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
-                <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
+                <div className="w-2 h-2 bg-gray-400 dark:bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
+                <div className="w-2 h-2 bg-gray-400 dark:bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
+                <div className="w-2 h-2 bg-gray-400 dark:bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
               </div>
             </div>
           </div>
@@ -155,7 +164,7 @@ export default function ChatWindow({ selectedModel, uploadedFiles }: ChatWindowP
       </div>
 
       {/* Input Area */}
-      <form onSubmit={handleSubmit} className="border-t bg-white p-4">
+      <form onSubmit={handleSubmit} className="border-t border-primary bg-primary p-4">
         <div className="flex gap-2">
           <textarea
             ref={inputRef}
@@ -163,20 +172,20 @@ export default function ChatWindow({ selectedModel, uploadedFiles }: ChatWindowP
             onChange={(e) => setInputValue(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder="Type your message..."
-            className="flex-1 resize-none rounded-lg border border-gray-300 px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="flex-1 resize-none rounded-lg border border-primary bg-input text-primary px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors"
             rows={1}
             disabled={sendMessage.isPending}
           />
           <button
             type="submit"
             disabled={!inputValue.trim() || sendMessage.isPending}
-            className="rounded-lg bg-blue-600 px-4 py-2 text-white hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            className="rounded-lg bg-button px-4 py-2 text-button hover:bg-button-hover disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-theme-sm"
           >
             <IoSend className="w-5 h-5" />
           </button>
         </div>
         {uploadedFiles && uploadedFiles.length > 0 && (
-          <div className="mt-2 text-sm text-gray-600">
+          <div className="mt-2 text-sm text-secondary">
             {uploadedFiles.length} file(s) attached
           </div>
         )}

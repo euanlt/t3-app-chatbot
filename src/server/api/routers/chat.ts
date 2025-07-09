@@ -47,7 +47,8 @@ export const chatRouter = createTRPCRouter({
 
         logger.info("Chat response generated", {
           responseLength: response.text.length,
-          model: response.model
+          model: response.model,
+          mcpToolsUsed: response.mcpToolsUsed?.length ?? 0
         });
 
         return response;

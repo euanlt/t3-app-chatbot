@@ -4,3 +4,88 @@
   --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif,
     "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
 }
+
+/* Light mode colors */
+:root {
+  --bg-primary: #ffffff;
+  --bg-secondary: #f8fafc;
+  --bg-tertiary: #f1f5f9;
+  --bg-chat: #f8fafc;
+  --bg-sidebar: #ffffff;
+  --bg-user-message: #2563eb;
+  --bg-ai-message: #ffffff;
+  --bg-input: #ffffff;
+  --bg-button: #2563eb;
+  --bg-button-hover: #1d4ed8;
+  
+  --text-primary: #0f172a;
+  --text-secondary: #64748b;
+  --text-tertiary: #94a3b8;
+  --text-user-message: #ffffff;
+  --text-ai-message: #0f172a;
+  --text-button: #ffffff;
+  
+  --border-primary: #e2e8f0;
+  --border-secondary: #cbd5e1;
+  --border-focus: #3b82f6;
+  --border-hover: #cbd5e1;
+  
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+}
+
+/* Dark mode colors */
+.dark {
+  --bg-primary: #0f172a;
+  --bg-secondary: #1e293b;
+  --bg-tertiary: #334155;
+  --bg-chat: #0f172a;
+  --bg-sidebar: #1e293b;
+  --bg-user-message: #3b82f6;
+  --bg-ai-message: #1e293b;
+  --bg-input: #1e293b;
+  --bg-button: #3b82f6;
+  --bg-button-hover: #2563eb;
+  
+  --text-primary: #f8fafc;
+  --text-secondary: #94a3b8;
+  --text-tertiary: #64748b;
+  --text-user-message: #ffffff;
+  --text-ai-message: #f8fafc;
+  --text-button: #ffffff;
+  
+  --border-primary: #334155;
+  --border-secondary: #475569;
+  --border-focus: #3b82f6;
+  --border-hover: #475569;
+  
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.3);
+  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.3), 0 2px 4px -2px rgb(0 0 0 / 0.3);
+}
+
+/* Utility classes for theme colors */
+.bg-primary { background-color: var(--bg-primary); }
+.bg-secondary { background-color: var(--bg-secondary); }
+.bg-tertiary { background-color: var(--bg-tertiary); }
+.bg-chat { background-color: var(--bg-chat); }
+.bg-sidebar { background-color: var(--bg-sidebar); }
+.bg-user-message { background-color: var(--bg-user-message); }
+.bg-ai-message { background-color: var(--bg-ai-message); }
+.bg-input { background-color: var(--bg-input); }
+.bg-button { background-color: var(--bg-button); }
+.bg-button:hover { background-color: var(--bg-button-hover); }
+
+.text-primary { color: var(--text-primary); }
+.text-secondary { color: var(--text-secondary); }
+.text-tertiary { color: var(--text-tertiary); }
+.text-user-message { color: var(--text-user-message); }
+.text-ai-message { color: var(--text-ai-message); }
+.text-button { color: var(--text-button); }
+
+.border-primary { border-color: var(--border-primary); }
+.border-secondary { border-color: var(--border-secondary); }
+.border-focus { border-color: var(--border-focus); }
+.border-hover:hover { border-color: var(--border-hover); }
+
+.shadow-theme-sm { box-shadow: var(--shadow-sm); }
+.shadow-theme-md { box-shadow: var(--shadow-md); }
