@@ -173,7 +173,7 @@ export class MCPToolService {
         } else if (typeof result === "object" && result !== null) {
           return `${header}\n${JSON.stringify(result, null, 2)}`;
         } else {
-          return `${header}\n${result !== null && result !== undefined ? String(result) : "null"}`;
+          return `${header}\n${result !== null && result !== undefined ? (typeof result === "string" ? result : JSON.stringify(result)) : "null"}`;
         }
       }
 
