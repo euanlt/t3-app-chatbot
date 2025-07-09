@@ -1,14 +1,14 @@
 "use client";
 
-import { useState, useRef, useEffect } from 'react';
-import { IoSend } from 'react-icons/io5';
-import ReactMarkdown from 'react-markdown';
+import { useState, useRef, useEffect } from "react";
+import { IoSend } from "react-icons/io5";
+import ReactMarkdown from "react-markdown";
 import { api } from "~/trpc/react";
-import MCPUsageIndicator, { type MCPToolUsage } from './MCPUsageIndicator';
+import MCPUsageIndicator, { type MCPToolUsage } from "./MCPUsageIndicator";
 
 interface Message {
   id: string;
-  sender: 'user' | 'ai';
+  sender: "user" | "ai";
   message: string;
   timestamp: Date;
   model?: string;
@@ -20,8 +20,11 @@ interface ChatWindowProps {
   uploadedFiles?: Array<{ id: string; name: string; content?: string }>;
 }
 
-export default function ChatWindow({ selectedModel, uploadedFiles }: ChatWindowProps) {
-  const [inputValue, setInputValue] = useState('');
+export default function ChatWindow({
+  selectedModel,
+  uploadedFiles,
+}: ChatWindowProps) {
+  const [inputValue, setInputValue] = useState("");
   const [messages, setMessages] = useState<Message[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -32,31 +35,31 @@ export default function ChatWindow({ selectedModel, uploadedFiles }: ChatWindowP
       // Add AI response to messages
       const aiMessage: Message = {
         id: generateUUID(),
-        sender: 'ai',
+        sender: "ai",
         message: response.text,
         timestamp: response.timestamp,
         model: response.model,
-        mcpToolsUsed: response.mcpToolsUsed
+        mcpToolsUsed: response.mcpToolsUsed,
       };
-      setMessages(prev => [...prev, aiMessage]);
+      setMessages((prev) => [...prev, aiMessage]);
     },
     onError: (error) => {
-      console.error('Error sending message:', error);
+      console.error("Error sending message:", error);
       // Add error message to chat
       const errorMessage: Message = {
         id: generateUUID(),
-        sender: 'ai',
+        sender: "ai",
         message: `Error: ${error.message}`,
         timestamp: new Date(),
-        model: 'error'
+        model: "error",
       };
-      setMessages(prev => [...prev, errorMessage]);
-    }
+      setMessages((prev) => [...prev, errorMessage]);
+    },
   });
 
   // Auto-scroll to bottom when new messages are added
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
   // Focus input on mount
@@ -70,80 +73,83 @@ export default function ChatWindow({ selectedModel, uploadedFiles }: ChatWindowP
       // Add user message to chat
       const userMessage: Message = {
         id: generateUUID(),
-        sender: 'user',
+        sender: "user",
         message: inputValue,
-        timestamp: new Date()
+        timestamp: new Date(),
       };
-      setMessages(prev => [...prev, userMessage]);
+      setMessages((prev) => [...prev, userMessage]);
 
       // Prepare file context
-      const fileContext = uploadedFiles?.map(f => f.content ?? '').join('\n\n') ?? '';
+      const fileContext =
+        uploadedFiles?.map((f) => f.content ?? "").join("\n\n") ?? "";
 
       // Send message via tRPC
       sendMessage.mutate({
         message: inputValue,
         model: selectedModel,
-        chatHistory: messages.map(m => ({
+        chatHistory: messages.map((m) => ({
           sender: m.sender,
           message: m.message,
           timestamp: m.timestamp,
-          model: m.model
+          model: m.model,
         })),
-        fileContext
+        fileContext,
       });
 
-      setInputValue('');
+      setInputValue("");
     }
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
+    if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       handleSubmit(e);
     }
   };
 
   return (
-    <div className="flex flex-col h-full bg-chat">
+    <div className="bg-chat flex h-full flex-col">
       {/* Messages Area */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
+      <div className="flex-1 space-y-4 overflow-y-auto p-4">
         {messages.length === 0 ? (
-          <div className="text-center text-secondary mt-8">
+          <div className="text-secondary mt-8 text-center">
             <p className="text-lg">Welcome to AI Chatbot</p>
-            <p className="text-sm mt-2">Start a conversation by typing a message below</p>
+            <p className="mt-2 text-sm">
+              Start a conversation by typing a message below
+            </p>
           </div>
         ) : (
           messages.map((msg) => (
             <div
               key={msg.id}
-              className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}
+              className={`flex ${msg.sender === "user" ? "justify-end" : "justify-start"}`}
             >
               <div
-                className={`max-w-[70%] rounded-lg p-3 shadow-theme-sm ${
-                  msg.sender === 'user'
-                    ? 'bg-user-message text-user-message'
-                    : msg.model === 'error'
-                    ? 'bg-red-50 border border-red-200 text-red-700'
-                    : 'bg-ai-message border border-primary text-ai-message'
+                className={`shadow-theme-sm max-w-[70%] rounded-lg p-3 ${
+                  msg.sender === "user"
+                    ? "bg-user-message text-user-message"
+                    : msg.model === "error"
+                      ? "border border-red-200 bg-red-50 text-red-700"
+                      : "bg-ai-message border-primary text-ai-message border"
                 }`}
               >
-                {msg.sender === 'ai' ? (
+                {msg.sender === "ai" ? (
                   <div className="prose prose-sm max-w-none">
                     <ReactMarkdown>{msg.message}</ReactMarkdown>
                   </div>
                 ) : (
                   <p className="whitespace-pre-wrap">{msg.message}</p>
                 )}
-                
+
                 {/* MCP Usage Indicator */}
-                {msg.sender === 'ai' && msg.mcpToolsUsed && msg.mcpToolsUsed.length > 0 && (
-                  <MCPUsageIndicator toolsUsed={msg.mcpToolsUsed} />
-                )}
-                
+                {msg.sender === "ai" &&
+                  msg.mcpToolsUsed &&
+                  msg.mcpToolsUsed.length > 0 && (
+                    <MCPUsageIndicator toolsUsed={msg.mcpToolsUsed} />
+                  )}
+
                 {msg.model && (
-                  <p className="text-xs opacity-70 mt-1">
-                    {msg.model}
-                  </p>
+                  <p className="mt-1 text-xs opacity-70">{msg.model}</p>
                 )}
               </div>
             </div>
@@ -151,11 +157,20 @@ export default function ChatWindow({ selectedModel, uploadedFiles }: ChatWindowP
         )}
         {sendMessage.isPending && (
           <div className="flex justify-start">
-            <div className="bg-ai-message border border-primary rounded-lg p-3 shadow-theme-sm">
+            <div className="bg-ai-message border-primary shadow-theme-sm rounded-lg border p-3">
               <div className="flex space-x-2">
-                <div className="w-2 h-2 bg-gray-400 dark:bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
-                <div className="w-2 h-2 bg-gray-400 dark:bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
-                <div className="w-2 h-2 bg-gray-400 dark:bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
+                <div
+                  className="h-2 w-2 animate-bounce rounded-full bg-gray-400 dark:bg-gray-500"
+                  style={{ animationDelay: "0ms" }}
+                ></div>
+                <div
+                  className="h-2 w-2 animate-bounce rounded-full bg-gray-400 dark:bg-gray-500"
+                  style={{ animationDelay: "150ms" }}
+                ></div>
+                <div
+                  className="h-2 w-2 animate-bounce rounded-full bg-gray-400 dark:bg-gray-500"
+                  style={{ animationDelay: "300ms" }}
+                ></div>
               </div>
             </div>
           </div>
@@ -164,7 +179,10 @@ export default function ChatWindow({ selectedModel, uploadedFiles }: ChatWindowP
       </div>
 
       {/* Input Area */}
-      <form onSubmit={handleSubmit} className="border-t border-primary bg-primary p-4">
+      <form
+        onSubmit={handleSubmit}
+        className="border-primary bg-primary border-t p-4"
+      >
         <div className="flex gap-2">
           <textarea
             ref={inputRef}
@@ -172,20 +190,20 @@ export default function ChatWindow({ selectedModel, uploadedFiles }: ChatWindowP
             onChange={(e) => setInputValue(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder="Type your message..."
-            className="flex-1 resize-none rounded-lg border border-primary bg-input text-primary px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors"
+            className="border-primary bg-input text-primary flex-1 resize-none rounded-lg border px-4 py-2 transition-colors focus:ring-2 focus:ring-blue-500 focus:outline-none"
             rows={1}
             disabled={sendMessage.isPending}
           />
           <button
             type="submit"
             disabled={!inputValue.trim() || sendMessage.isPending}
-            className="rounded-lg bg-button px-4 py-2 text-button hover:bg-button-hover disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-theme-sm"
+            className="bg-button text-button hover:bg-button-hover shadow-theme-sm rounded-lg px-4 py-2 transition-colors disabled:cursor-not-allowed disabled:opacity-50"
           >
-            <IoSend className="w-5 h-5" />
+            <IoSend className="h-5 w-5" />
           </button>
         </div>
         {uploadedFiles && uploadedFiles.length > 0 && (
-          <div className="mt-2 text-sm text-secondary">
+          <div className="text-secondary mt-2 text-sm">
             {uploadedFiles.length} file(s) attached
           </div>
         )}
@@ -196,9 +214,9 @@ export default function ChatWindow({ selectedModel, uploadedFiles }: ChatWindowP
 
 // Simple UUID generator
 function generateUUID(): string {
-  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
-    const r = Math.random() * 16 | 0;
-    const v = c === 'x' ? r : (r & 0x3 | 0x8);
+  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function (c) {
+    const r = (Math.random() * 16) | 0;
+    const v = c === "x" ? r : (r & 0x3) | 0x8;
     return v.toString(16);
   });
 }

@@ -19,10 +19,10 @@ export class MCPClientService {
    * Connect to an MCP server
    */
   async connect(config: MCPServerConfig): Promise<void> {
-    logger.info("Connecting to MCP server", { 
-      id: config.id, 
+    logger.info("Connecting to MCP server", {
+      id: config.id,
       name: config.name,
-      transport: config.transport 
+      transport: config.transport,
     });
 
     try {
@@ -35,7 +35,7 @@ export class MCPClientService {
     } catch (error) {
       logger.error("Failed to connect to MCP server", {
         id: config.id,
-        error: error instanceof Error ? error.message : "Unknown error"
+        error: error instanceof Error ? error.message : "Unknown error",
       });
       throw error;
     }
@@ -54,36 +54,36 @@ export class MCPClientService {
       command: config.command,
       args: config.args,
       argsLength: config.args?.length ?? 0,
-      env: config.env ? Object.keys(config.env) : []
+      env: config.env ? Object.keys(config.env) : [],
     });
 
     // Try to find npx path if command is npx
     let finalCommand = config.command;
-    if (config.command === 'npx') {
+    if (config.command === "npx") {
       try {
-        const { execSync } = await import('child_process');
-        const npxPath = execSync('which npx', { encoding: 'utf8' }).trim();
+        const { execSync } = await import("child_process");
+        const npxPath = execSync("which npx", { encoding: "utf8" }).trim();
         if (npxPath) {
           finalCommand = npxPath;
           logger.info("Found npx at path", { path: npxPath });
         }
       } catch (error) {
         logger.warn("Could not find npx with 'which', trying absolute paths", {
-          error: error instanceof Error ? error.message : "Unknown error"
+          error: error instanceof Error ? error.message : "Unknown error",
         });
-        
+
         // Try common npx locations
         const commonPaths = [
-          '/usr/local/bin/npx',
-          '/usr/bin/npx',
-          '/opt/homebrew/bin/npx',
-          'C:\\Program Files\\nodejs\\npx.cmd',
-          'C:\\nodejs\\npx.cmd'
+          "/usr/local/bin/npx",
+          "/usr/bin/npx",
+          "/opt/homebrew/bin/npx",
+          "C:\\Program Files\\nodejs\\npx.cmd",
+          "C:\\nodejs\\npx.cmd",
         ];
-        
+
         for (const path of commonPaths) {
           try {
-            const fs = await import('fs');
+            const fs = await import("fs");
             if (fs.existsSync(path)) {
               finalCommand = path;
               logger.info("Found npx at fallback path", { path });
@@ -100,13 +100,13 @@ export class MCPClientService {
       originalCommand: config.command,
       finalCommand,
       args: config.args,
-      envVars: config.env ? Object.keys(config.env) : []
+      envVars: config.env ? Object.keys(config.env) : [],
     });
 
     // Validate environment variables
     if (config.env) {
       for (const [key, value] of Object.entries(config.env)) {
-        if (!value || value.trim() === '') {
+        if (!value || value.trim() === "") {
           throw new Error(`Environment variable ${key} has empty value`);
         }
       }
@@ -115,14 +115,14 @@ export class MCPClientService {
     // Create merged environment variables
     // Include all of process.env plus our custom env vars
     const mergedEnv: Record<string, string> = {};
-    
+
     // Copy process.env, filtering out undefined values
     for (const [key, value] of Object.entries(process.env)) {
       if (value !== undefined) {
         mergedEnv[key] = value;
       }
     }
-    
+
     // Add custom env vars
     if (config.env) {
       for (const [key, value] of Object.entries(config.env)) {
@@ -136,8 +136,11 @@ export class MCPClientService {
       customEnvVars: config.env ? Object.keys(config.env) : [],
       totalEnvVars: Object.keys(mergedEnv).length,
       // Log first few chars of each custom env var for debugging (without exposing full values)
-      customEnvPreview: config.env ? 
-        Object.entries(config.env).map(([k, v]) => `${k}=${v.substring(0, 5)}...`) : []
+      customEnvPreview: config.env
+        ? Object.entries(config.env).map(
+            ([k, v]) => `${k}=${v.substring(0, 5)}...`,
+          )
+        : [],
     });
 
     // Create transport with proper environment variables
@@ -145,16 +148,19 @@ export class MCPClientService {
     const transport = new StdioClientTransport({
       command: finalCommand,
       args: config.args ?? [],
-      env: mergedEnv
+      env: mergedEnv,
     });
 
     // Create client
-    const client = new Client({
-      name: `ai-chatbot-${config.id}`,
-      version: "1.0.0"
-    }, {
-      capabilities: {}
-    });
+    const client = new Client(
+      {
+        name: `ai-chatbot-${config.id}`,
+        version: "1.0.0",
+      },
+      {
+        capabilities: {},
+      },
+    );
 
     // Connect the client
     await client.connect(transport);
@@ -163,12 +169,12 @@ export class MCPClientService {
     activeClients.set(config.id, {
       client,
       transport,
-      config
+      config,
     });
 
     logger.info("Successfully connected to MCP server", {
       id: config.id,
-      name: config.name
+      name: config.name,
     });
 
     // Discover capabilities
@@ -198,7 +204,7 @@ export class MCPClientService {
     } catch (error) {
       logger.error("Error disconnecting from MCP server", {
         serverId,
-        error: error instanceof Error ? error.message : "Unknown error"
+        error: error instanceof Error ? error.message : "Unknown error",
       });
     }
   }
@@ -214,27 +220,36 @@ export class MCPClientService {
 
     logger.info("Discovering server capabilities", { serverId });
 
-    let tools: Array<{ name: string; description: string; inputSchema?: unknown }> = [];
-    let resources: Array<{ uri: string; name: string; description?: string }> = [];
+    let tools: Array<{
+      name: string;
+      description: string;
+      inputSchema?: unknown;
+    }> = [];
+    let resources: Array<{ uri: string; name: string; description?: string }> =
+      [];
     let prompts: Array<{ name: string; description?: string }> = [];
 
     // Try to list tools
     try {
       logger.debug("Attempting to list tools", { serverId });
       const toolsResponse = await connection.client.listTools();
-      tools = toolsResponse.tools.map(tool => ({
+      tools = toolsResponse.tools.map((tool) => ({
         name: tool.name,
         description: tool.description ?? "",
-        inputSchema: tool.inputSchema
+        inputSchema: tool.inputSchema,
       }));
-      logger.info("Tools discovered", { 
-        serverId, 
+      logger.info("Tools discovered", {
+        serverId,
         count: tools.length,
-        toolNames: tools.map(t => t.name)
+        toolNames: tools.map((t) => t.name),
       });
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : "Unknown error";
-      if (errorMessage.includes("-32601") || errorMessage.includes("Method not found")) {
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error";
+      if (
+        errorMessage.includes("-32601") ||
+        errorMessage.includes("Method not found")
+      ) {
         logger.info("Server does not implement listTools method", { serverId });
       } else {
         logger.error("Failed to list tools", { serverId, error: errorMessage });
@@ -244,35 +259,56 @@ export class MCPClientService {
     // Try to list resources
     try {
       const resourcesResponse = await connection.client.listResources();
-      resources = resourcesResponse.resources.map(resource => ({
+      resources = resourcesResponse.resources.map((resource) => ({
         uri: resource.uri,
         name: resource.name,
-        description: resource.description
+        description: resource.description,
       }));
-      logger.info("Resources discovered", { serverId, count: resources.length });
+      logger.info("Resources discovered", {
+        serverId,
+        count: resources.length,
+      });
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : "Unknown error";
-      if (errorMessage.includes("-32601") || errorMessage.includes("Method not found")) {
-        logger.info("Server does not implement listResources method", { serverId });
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error";
+      if (
+        errorMessage.includes("-32601") ||
+        errorMessage.includes("Method not found")
+      ) {
+        logger.info("Server does not implement listResources method", {
+          serverId,
+        });
       } else {
-        logger.error("Failed to list resources", { serverId, error: errorMessage });
+        logger.error("Failed to list resources", {
+          serverId,
+          error: errorMessage,
+        });
       }
     }
 
     // Try to list prompts
     try {
       const promptsResponse = await connection.client.listPrompts();
-      prompts = promptsResponse.prompts.map(prompt => ({
+      prompts = promptsResponse.prompts.map((prompt) => ({
         name: prompt.name,
-        description: prompt.description
+        description: prompt.description,
       }));
       logger.info("Prompts discovered", { serverId, count: prompts.length });
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : "Unknown error";
-      if (errorMessage.includes("-32601") || errorMessage.includes("Method not found")) {
-        logger.info("Server does not implement listPrompts method", { serverId });
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error";
+      if (
+        errorMessage.includes("-32601") ||
+        errorMessage.includes("Method not found")
+      ) {
+        logger.info("Server does not implement listPrompts method", {
+          serverId,
+        });
       } else {
-        logger.error("Failed to list prompts", { serverId, error: errorMessage });
+        logger.error("Failed to list prompts", {
+          serverId,
+          error: errorMessage,
+        });
       }
     }
 
@@ -285,14 +321,18 @@ export class MCPClientService {
       serverId,
       tools: tools.length,
       resources: resources.length,
-      prompts: prompts.length
+      prompts: prompts.length,
     });
   }
 
   /**
    * Execute a tool on an MCP server
    */
-  async executeTool(serverId: string, toolName: string, args?: Record<string, unknown>): Promise<unknown> {
+  async executeTool(
+    serverId: string,
+    toolName: string,
+    args?: Record<string, unknown>,
+  ): Promise<unknown> {
     const connection = activeClients.get(serverId);
     if (!connection) {
       throw new Error("Server not connected");
@@ -302,18 +342,18 @@ export class MCPClientService {
       serverId,
       toolName,
       hasArgs: !!args,
-      args: args ? JSON.stringify(args) : undefined
+      args: args ? JSON.stringify(args) : undefined,
     });
 
     try {
       const result = await connection.client.callTool({
         name: toolName,
-        arguments: args ?? {}
+        arguments: args ?? {},
       });
 
       logger.info("Tool executed successfully", {
         serverId,
-        toolName
+        toolName,
       });
 
       return result;
@@ -321,7 +361,7 @@ export class MCPClientService {
       logger.error("Failed to execute tool", {
         serverId,
         toolName,
-        error: error instanceof Error ? error.message : "Unknown error"
+        error: error instanceof Error ? error.message : "Unknown error",
       });
       throw error;
     }
@@ -338,7 +378,7 @@ export class MCPClientService {
 
     logger.info("Getting resource", {
       serverId,
-      uri
+      uri,
     });
 
     try {
@@ -346,7 +386,7 @@ export class MCPClientService {
 
       logger.info("Resource retrieved successfully", {
         serverId,
-        uri
+        uri,
       });
 
       return result;
@@ -354,7 +394,7 @@ export class MCPClientService {
       logger.error("Failed to get resource", {
         serverId,
         uri,
-        error: error instanceof Error ? error.message : "Unknown error"
+        error: error instanceof Error ? error.message : "Unknown error",
       });
       throw error;
     }
@@ -363,7 +403,11 @@ export class MCPClientService {
   /**
    * Get a prompt from an MCP server
    */
-  async getPrompt(serverId: string, promptName: string, args?: Record<string, string>): Promise<unknown> {
+  async getPrompt(
+    serverId: string,
+    promptName: string,
+    args?: Record<string, string>,
+  ): Promise<unknown> {
     const connection = activeClients.get(serverId);
     if (!connection) {
       throw new Error("Server not connected");
@@ -372,18 +416,18 @@ export class MCPClientService {
     logger.info("Getting prompt", {
       serverId,
       promptName,
-      hasArgs: !!args
+      hasArgs: !!args,
     });
 
     try {
       const result = await connection.client.getPrompt({
         name: promptName,
-        arguments: args ?? {}
+        arguments: args ?? {},
       });
 
       logger.info("Prompt retrieved successfully", {
         serverId,
-        promptName
+        promptName,
       });
 
       return result;
@@ -391,7 +435,7 @@ export class MCPClientService {
       logger.error("Failed to get prompt", {
         serverId,
         promptName,
-        error: error instanceof Error ? error.message : "Unknown error"
+        error: error instanceof Error ? error.message : "Unknown error",
       });
       throw error;
     }
@@ -414,49 +458,64 @@ export class MCPClientService {
   /**
    * Get all available tools from all connected servers
    */
-  getAllTools(): Array<{ serverId: string; serverName: string; tool: { name: string; description: string; inputSchema?: unknown } }> {
-    const allTools: Array<{ serverId: string; serverName: string; tool: { name: string; description: string; inputSchema?: unknown } }> = [];
-    
+  getAllTools(): Array<{
+    serverId: string;
+    serverName: string;
+    tool: { name: string; description: string; inputSchema?: unknown };
+  }> {
+    const allTools: Array<{
+      serverId: string;
+      serverName: string;
+      tool: { name: string; description: string; inputSchema?: unknown };
+    }> = [];
+
     logger.debug("Getting all tools from active connections", {
-      activeConnections: activeClients.size
+      activeConnections: activeClients.size,
     });
-    
+
     for (const [serverId, connection] of activeClients) {
       if (connection.config.tools) {
         logger.debug("Found tools for server", {
           serverId,
           serverName: connection.config.name,
-          toolCount: connection.config.tools.length
+          toolCount: connection.config.tools.length,
         });
-        
+
         for (const tool of connection.config.tools) {
           allTools.push({
             serverId,
             serverName: connection.config.name,
-            tool
+            tool,
           });
         }
       }
     }
-    
+
     logger.debug("Total tools available", {
       count: allTools.length,
-      tools: allTools.map(t => `${t.serverName}/${t.tool.name}`)
+      tools: allTools.map((t) => `${t.serverName}/${t.tool.name}`),
     });
-    
+
     return allTools;
   }
 
   /**
    * Search for tools that match a query
    */
-  searchTools(query: string): Array<{ serverId: string; serverName: string; tool: { name: string; description: string; inputSchema?: unknown } }> {
+  searchTools(
+    query: string,
+  ): Array<{
+    serverId: string;
+    serverName: string;
+    tool: { name: string; description: string; inputSchema?: unknown };
+  }> {
     const lowerQuery = query.toLowerCase();
     const allTools = this.getAllTools();
-    
-    return allTools.filter(({ tool }) => 
-      tool.name.toLowerCase().includes(lowerQuery) || 
-      tool.description.toLowerCase().includes(lowerQuery)
+
+    return allTools.filter(
+      ({ tool }) =>
+        tool.name.toLowerCase().includes(lowerQuery) ||
+        tool.description.toLowerCase().includes(lowerQuery),
     );
   }
 }

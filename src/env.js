@@ -9,7 +9,10 @@ export const env = createEnv({
   server: {
     NODE_ENV: z.enum(["development", "test", "production"]),
     OPENROUTER_API_KEY: z.string().optional().default(""),
-    LOG_LEVEL: z.enum(["ERROR", "WARN", "INFO", "DEBUG", "TRACE"]).optional().default("INFO"),
+    LOG_LEVEL: z
+      .enum(["ERROR", "WARN", "INFO", "DEBUG", "TRACE"])
+      .optional()
+      .default("INFO"),
     UPLOAD_DIR: z.string().optional().default("./uploads"),
     MAX_FILE_SIZE: z.string().optional().default("10485760"),
     PERPLEXITY_API_KEY: z.string().optional(),

@@ -1,7 +1,16 @@
 "use client";
 
-import { useState } from 'react';
-import { FaRobot, FaFileAlt, FaPlug, FaPlus, FaPlay, FaStop, FaTrash, FaEdit } from 'react-icons/fa';
+import { useState } from "react";
+import {
+  FaRobot,
+  FaFileAlt,
+  FaPlug,
+  FaPlus,
+  FaPlay,
+  FaStop,
+  FaTrash,
+  FaEdit,
+} from "react-icons/fa";
 import { api } from "~/trpc/react";
 import ThemeToggle from "~/app/_components/theme/ThemeToggle";
 import AddServerDialog from "~/app/_components/mcp/AddServerDialog";
@@ -20,36 +29,39 @@ export default function Sidebar({
   onModelChange,
   uploadedFiles,
   onFileUpload,
-  onFileRemove
+  onFileRemove,
 }: SidebarProps) {
-  const [activeTab, setActiveTab] = useState<'models' | 'files' | 'plugins'>('models');
+  const [activeTab, setActiveTab] = useState<"models" | "files" | "plugins">(
+    "models",
+  );
   const [showAddServerDialog, setShowAddServerDialog] = useState(false);
   const [editingServer, setEditingServer] = useState<string | null>(null);
-  
+
   // Fetch models using tRPC
   const { data: modelsData } = api.models.getAvailableModels.useQuery();
-  const { data: mcpServersData, refetch: refetchServers } = api.mcp.getUserServers.useQuery();
-  
+  const { data: mcpServersData, refetch: refetchServers } =
+    api.mcp.getUserServers.useQuery();
+
   const models = modelsData?.models ?? [];
   const mcpServers = mcpServersData?.servers ?? [];
-  
+
   // Server management mutations
   const startServer = api.mcp.startServer.useMutation({
     onSuccess: () => {
       void refetchServers();
-    }
+    },
   });
-  
+
   const stopServer = api.mcp.stopServer.useMutation({
     onSuccess: () => {
       void refetchServers();
-    }
+    },
   });
-  
+
   const deleteServer = api.mcp.deleteServer.useMutation({
     onSuccess: () => {
       void refetchServers();
-    }
+    },
   });
 
   const handleFileInput = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -59,10 +71,10 @@ export default function Sidebar({
   };
 
   return (
-    <div className="w-80 bg-sidebar border-r border-primary flex flex-col h-full">
+    <div className="bg-sidebar border-primary flex h-full w-80 flex-col border-r">
       {/* Header */}
-      <div className="p-4 border-b border-primary flex items-center justify-between">
-        <h2 className="text-xl font-semibold flex items-center gap-2 text-primary">
+      <div className="border-primary flex items-center justify-between border-b p-4">
+        <h2 className="text-primary flex items-center gap-2 text-xl font-semibold">
           <FaRobot className="text-blue-600" />
           AI Chatbot
         </h2>
@@ -70,38 +82,38 @@ export default function Sidebar({
       </div>
 
       {/* Tabs */}
-      <div className="flex border-b border-primary">
+      <div className="border-primary flex border-b">
         <button
-          onClick={() => setActiveTab('models')}
-          className={`flex-1 py-2 px-4 text-sm font-medium transition-colors ${
-            activeTab === 'models'
-              ? 'text-blue-600 border-b-2 border-blue-600'
-              : 'text-secondary hover:text-primary'
+          onClick={() => setActiveTab("models")}
+          className={`flex-1 px-4 py-2 text-sm font-medium transition-colors ${
+            activeTab === "models"
+              ? "border-b-2 border-blue-600 text-blue-600"
+              : "text-secondary hover:text-primary"
           }`}
         >
-          <FaRobot className="inline mr-1" />
+          <FaRobot className="mr-1 inline" />
           Models
         </button>
         <button
-          onClick={() => setActiveTab('files')}
-          className={`flex-1 py-2 px-4 text-sm font-medium transition-colors ${
-            activeTab === 'files'
-              ? 'text-blue-600 border-b-2 border-blue-600'
-              : 'text-secondary hover:text-primary'
+          onClick={() => setActiveTab("files")}
+          className={`flex-1 px-4 py-2 text-sm font-medium transition-colors ${
+            activeTab === "files"
+              ? "border-b-2 border-blue-600 text-blue-600"
+              : "text-secondary hover:text-primary"
           }`}
         >
-          <FaFileAlt className="inline mr-1" />
+          <FaFileAlt className="mr-1 inline" />
           Files
         </button>
         <button
-          onClick={() => setActiveTab('plugins')}
-          className={`flex-1 py-2 px-4 text-sm font-medium transition-colors ${
-            activeTab === 'plugins'
-              ? 'text-blue-600 border-b-2 border-blue-600'
-              : 'text-secondary hover:text-primary'
+          onClick={() => setActiveTab("plugins")}
+          className={`flex-1 px-4 py-2 text-sm font-medium transition-colors ${
+            activeTab === "plugins"
+              ? "border-b-2 border-blue-600 text-blue-600"
+              : "text-secondary hover:text-primary"
           }`}
         >
-          <FaPlug className="inline mr-1" />
+          <FaPlug className="mr-1 inline" />
           Plugins
         </button>
       </div>
@@ -109,79 +121,110 @@ export default function Sidebar({
       {/* Content */}
       <div className="flex-1 overflow-y-auto p-4">
         {/* Models Tab */}
-        {activeTab === 'models' && (
+        {activeTab === "models" && (
           <div className="space-y-4">
-            <h3 className="font-medium text-primary mb-2">Select AI Model</h3>
-            
+            <h3 className="text-primary mb-2 font-medium">Select AI Model</h3>
+
             {/* Free Models */}
             <div>
-              <h4 className="text-sm font-medium text-secondary mb-2">Free Models</h4>
+              <h4 className="text-secondary mb-2 text-sm font-medium">
+                Free Models
+              </h4>
               <div className="space-y-2">
-                {models.filter(m => m.category === 'free').map((model) => (
-                  <div
-                    key={model.id}
-                    onClick={() => onModelChange(model.id)}
-                    className={`p-3 rounded-lg border cursor-pointer transition-all shadow-theme-sm ${
-                      selectedModel === model.id
-                        ? 'border-blue-500 bg-blue-500/10 text-blue-600 dark:bg-blue-500/20 dark:text-blue-400'
-                        : 'border-primary hover:border-hover bg-primary'
-                    }`}
-                  >
-                    <div className={`font-medium text-sm ${selectedModel === model.id ? 'text-blue-600 dark:text-blue-400' : 'text-primary'}`}>{model.name}</div>
-                    <div className={`text-xs mt-1 ${selectedModel === model.id ? 'text-blue-600/80 dark:text-blue-400/80' : 'text-secondary'}`}>{model.description}</div>
-                    {model.recommended && (
-                      <span className="inline-block mt-1 px-2 py-0.5 text-xs bg-green-100 text-green-700 rounded">
-                        Recommended
-                      </span>
-                    )}
-                  </div>
-                ))}
+                {models
+                  .filter((m) => m.category === "free")
+                  .map((model) => (
+                    <div
+                      key={model.id}
+                      onClick={() => onModelChange(model.id)}
+                      className={`shadow-theme-sm cursor-pointer rounded-lg border p-3 transition-all ${
+                        selectedModel === model.id
+                          ? "border-blue-500 bg-blue-500/10 text-blue-600 dark:bg-blue-500/20 dark:text-blue-400"
+                          : "border-primary hover:border-hover bg-primary"
+                      }`}
+                    >
+                      <div
+                        className={`text-sm font-medium ${selectedModel === model.id ? "text-blue-600 dark:text-blue-400" : "text-primary"}`}
+                      >
+                        {model.name}
+                      </div>
+                      <div
+                        className={`mt-1 text-xs ${selectedModel === model.id ? "text-blue-600/80 dark:text-blue-400/80" : "text-secondary"}`}
+                      >
+                        {model.description}
+                      </div>
+                      {model.recommended && (
+                        <span className="mt-1 inline-block rounded bg-green-100 px-2 py-0.5 text-xs text-green-700">
+                          Recommended
+                        </span>
+                      )}
+                    </div>
+                  ))}
               </div>
             </div>
 
             {/* Premium Models */}
             <div className="mt-4">
-              <h4 className="text-sm font-medium text-secondary mb-2">Premium Models</h4>
+              <h4 className="text-secondary mb-2 text-sm font-medium">
+                Premium Models
+              </h4>
               <div className="space-y-2">
-                {models.filter(m => m.category === 'premium').map((model) => (
-                  <div
-                    key={model.id}
-                    onClick={() => onModelChange(model.id)}
-                    className={`p-3 rounded-lg border cursor-pointer transition-all shadow-theme-sm ${
-                      selectedModel === model.id
-                        ? 'border-blue-500 bg-blue-500/10 text-blue-600 dark:bg-blue-500/20 dark:text-blue-400'
-                        : 'border-primary hover:border-hover bg-primary'
-                    }`}
-                  >
-                    <div className={`font-medium text-sm ${selectedModel === model.id ? 'text-blue-600 dark:text-blue-400' : 'text-primary'}`}>{model.name}</div>
-                    <div className={`text-xs mt-1 ${selectedModel === model.id ? 'text-blue-600/80 dark:text-blue-400/80' : 'text-secondary'}`}>{model.description}</div>
-                    <div className={`text-xs mt-1 ${selectedModel === model.id ? 'text-blue-600/60 dark:text-blue-400/60' : 'text-tertiary'}`}>
-                      ${model.pricing.prompt}/{model.pricing.completion} per 1M tokens
+                {models
+                  .filter((m) => m.category === "premium")
+                  .map((model) => (
+                    <div
+                      key={model.id}
+                      onClick={() => onModelChange(model.id)}
+                      className={`shadow-theme-sm cursor-pointer rounded-lg border p-3 transition-all ${
+                        selectedModel === model.id
+                          ? "border-blue-500 bg-blue-500/10 text-blue-600 dark:bg-blue-500/20 dark:text-blue-400"
+                          : "border-primary hover:border-hover bg-primary"
+                      }`}
+                    >
+                      <div
+                        className={`text-sm font-medium ${selectedModel === model.id ? "text-blue-600 dark:text-blue-400" : "text-primary"}`}
+                      >
+                        {model.name}
+                      </div>
+                      <div
+                        className={`mt-1 text-xs ${selectedModel === model.id ? "text-blue-600/80 dark:text-blue-400/80" : "text-secondary"}`}
+                      >
+                        {model.description}
+                      </div>
+                      <div
+                        className={`mt-1 text-xs ${selectedModel === model.id ? "text-blue-600/60 dark:text-blue-400/60" : "text-tertiary"}`}
+                      >
+                        ${model.pricing.prompt}/{model.pricing.completion} per
+                        1M tokens
+                      </div>
+                      {model.recommended && (
+                        <span className="mt-1 inline-block rounded bg-green-100 px-2 py-0.5 text-xs text-green-700">
+                          Recommended
+                        </span>
+                      )}
                     </div>
-                    {model.recommended && (
-                      <span className="inline-block mt-1 px-2 py-0.5 text-xs bg-green-100 text-green-700 rounded">
-                        Recommended
-                      </span>
-                    )}
-                  </div>
-                ))}
+                  ))}
               </div>
             </div>
           </div>
         )}
 
         {/* Files Tab */}
-        {activeTab === 'files' && (
+        {activeTab === "files" && (
           <div>
-            <h3 className="font-medium text-primary mb-4">File Management</h3>
-            
+            <h3 className="text-primary mb-4 font-medium">File Management</h3>
+
             {/* File Upload */}
             <div className="mb-4">
               <label className="block w-full cursor-pointer">
-                <div className="border-2 border-dashed border-secondary rounded-lg p-4 text-center hover:border-hover transition-colors">
-                  <FaFileAlt className="mx-auto text-secondary text-2xl mb-2" />
-                  <p className="text-sm text-secondary">Click to upload files</p>
-                  <p className="text-xs text-tertiary mt-1">PDF, DOCX, TXT, Images</p>
+                <div className="border-secondary hover:border-hover rounded-lg border-2 border-dashed p-4 text-center transition-colors">
+                  <FaFileAlt className="text-secondary mx-auto mb-2 text-2xl" />
+                  <p className="text-secondary text-sm">
+                    Click to upload files
+                  </p>
+                  <p className="text-tertiary mt-1 text-xs">
+                    PDF, DOCX, TXT, Images
+                  </p>
                 </div>
                 <input
                   type="file"
@@ -196,19 +239,23 @@ export default function Sidebar({
             {/* Uploaded Files List */}
             {uploadedFiles.length > 0 && (
               <div className="space-y-2">
-                <h4 className="text-sm font-medium text-secondary">Uploaded Files</h4>
+                <h4 className="text-secondary text-sm font-medium">
+                  Uploaded Files
+                </h4>
                 {uploadedFiles.map((file) => (
                   <div
                     key={file.id}
-                    className="flex items-center justify-between p-2 bg-tertiary rounded-lg"
+                    className="bg-tertiary flex items-center justify-between rounded-lg p-2"
                   >
-                    <div className="flex items-center gap-2 flex-1 min-w-0">
+                    <div className="flex min-w-0 flex-1 items-center gap-2">
                       <FaFileAlt className="text-secondary flex-shrink-0" />
-                      <span className="text-sm truncate text-primary">{file.name}</span>
+                      <span className="text-primary truncate text-sm">
+                        {file.name}
+                      </span>
                     </div>
                     <button
                       onClick={() => onFileRemove(file.id)}
-                      className="text-red-500 hover:text-red-700 text-sm flex-shrink-0"
+                      className="flex-shrink-0 text-sm text-red-500 hover:text-red-700"
                     >
                       Remove
                     </button>
@@ -218,7 +265,7 @@ export default function Sidebar({
             )}
 
             {uploadedFiles.length === 0 && (
-              <p className="text-sm text-secondary text-center mt-4">
+              <p className="text-secondary mt-4 text-center text-sm">
                 No files uploaded yet
               </p>
             )}
@@ -226,90 +273,112 @@ export default function Sidebar({
         )}
 
         {/* Plugins Tab */}
-        {activeTab === 'plugins' && (
+        {activeTab === "plugins" && (
           <div>
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="font-medium text-primary">MCP Servers</h3>
+            <div className="mb-4 flex items-center justify-between">
+              <h3 className="text-primary font-medium">MCP Servers</h3>
               <button
                 onClick={() => setShowAddServerDialog(true)}
-                className="p-2 bg-button text-button rounded-lg hover:bg-button-hover transition-colors shadow-theme-sm"
+                className="bg-button text-button hover:bg-button-hover shadow-theme-sm rounded-lg p-2 transition-colors"
                 title="Add new server"
               >
-                <FaPlus className="w-3 h-3" />
+                <FaPlus className="h-3 w-3" />
               </button>
             </div>
-            
+
             <div className="space-y-2">
               {mcpServers.map((server) => (
                 <div
                   key={server.id}
-                  className="p-3 rounded-lg border border-primary bg-primary shadow-theme-sm"
+                  className="border-primary bg-primary shadow-theme-sm rounded-lg border p-3"
                 >
                   <div className="flex items-center justify-between">
                     <div className="flex-1">
-                      <div className="font-medium text-sm text-primary">{server.name}</div>
-                      <div className="text-xs text-secondary mt-1">{server.description}</div>
-                      <div className="text-xs text-tertiary mt-1">
-                        {server.transport === 'stdio' ? `Command: ${server.command}` : `URL: ${server.url}`}
+                      <div className="text-primary text-sm font-medium">
+                        {server.name}
+                      </div>
+                      <div className="text-secondary mt-1 text-xs">
+                        {server.description}
+                      </div>
+                      <div className="text-tertiary mt-1 text-xs">
+                        {server.transport === "stdio"
+                          ? `Command: ${server.command}`
+                          : `URL: ${server.url}`}
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
                       <div
-                        className={`w-2 h-2 rounded-full ${
-                          server.status === 'active' ? 'bg-green-500' : 
-                          server.status === 'error' ? 'bg-red-500' :
-                          server.status === 'starting' || server.status === 'stopping' ? 'bg-yellow-500 animate-pulse' :
-                          'bg-gray-400 dark:bg-gray-600'
+                        className={`h-2 w-2 rounded-full ${
+                          server.status === "active"
+                            ? "bg-green-500"
+                            : server.status === "error"
+                              ? "bg-red-500"
+                              : server.status === "starting" ||
+                                  server.status === "stopping"
+                                ? "animate-pulse bg-yellow-500"
+                                : "bg-gray-400 dark:bg-gray-600"
                         }`}
                         title={server.status}
                       />
                     </div>
                   </div>
-                  
+
                   {/* Show capabilities if server is active */}
-                  {server.status === 'active' && (server.tools?.length ?? 0) > 0 && (
-                    <div className="mt-2 text-xs text-secondary">
-                      Tools: {server.tools?.map(t => t.name).join(', ')}
-                    </div>
-                  )}
-                  
+                  {server.status === "active" &&
+                    (server.tools?.length ?? 0) > 0 && (
+                      <div className="text-secondary mt-2 text-xs">
+                        Tools: {server.tools?.map((t) => t.name).join(", ")}
+                      </div>
+                    )}
+
                   <div className="mt-2 flex gap-2">
-                    {server.status === 'inactive' && (
-                      <button 
-                        onClick={() => startServer.mutate({ serverId: server.id })}
+                    {server.status === "inactive" && (
+                      <button
+                        onClick={() =>
+                          startServer.mutate({ serverId: server.id })
+                        }
                         disabled={startServer.isPending}
-                        className="text-xs px-2 py-1 bg-green-600 dark:bg-green-700 text-white rounded hover:bg-green-700 dark:hover:bg-green-600 transition-colors disabled:opacity-50"
+                        className="rounded bg-green-600 px-2 py-1 text-xs text-white transition-colors hover:bg-green-700 disabled:opacity-50 dark:bg-green-700 dark:hover:bg-green-600"
                       >
-                        <FaPlay className="inline mr-1" />
+                        <FaPlay className="mr-1 inline" />
                         Start
                       </button>
                     )}
-                    {(server.status === 'active' || server.status === 'starting') && (
-                      <button 
-                        onClick={() => stopServer.mutate({ serverId: server.id })}
+                    {(server.status === "active" ||
+                      server.status === "starting") && (
+                      <button
+                        onClick={() =>
+                          stopServer.mutate({ serverId: server.id })
+                        }
                         disabled={stopServer.isPending}
-                        className="text-xs px-2 py-1 bg-red-600 dark:bg-red-700 text-white rounded hover:bg-red-700 dark:hover:bg-red-600 transition-colors disabled:opacity-50"
+                        className="rounded bg-red-600 px-2 py-1 text-xs text-white transition-colors hover:bg-red-700 disabled:opacity-50 dark:bg-red-700 dark:hover:bg-red-600"
                       >
-                        <FaStop className="inline mr-1" />
+                        <FaStop className="mr-1 inline" />
                         Stop
                       </button>
                     )}
-                    <button 
+                    <button
                       onClick={() => setEditingServer(server.id)}
-                      className="text-xs px-2 py-1 bg-blue-600 dark:bg-blue-700 text-white rounded hover:bg-blue-700 dark:hover:bg-blue-600 transition-colors"
+                      className="rounded bg-blue-600 px-2 py-1 text-xs text-white transition-colors hover:bg-blue-700 dark:bg-blue-700 dark:hover:bg-blue-600"
                       title="Edit server"
                     >
                       <FaEdit className="inline" />
                     </button>
-                    <button 
+                    <button
                       onClick={() => {
                         if (confirm(`Delete server "${server.name}"?`)) {
                           deleteServer.mutate({ id: server.id });
                         }
                       }}
-                      disabled={deleteServer.isPending || server.status !== 'inactive'}
-                      className="text-xs px-2 py-1 bg-tertiary rounded hover:bg-secondary transition-colors text-primary disabled:opacity-50"
-                      title={server.status !== 'inactive' ? 'Stop server before deleting' : 'Delete server'}
+                      disabled={
+                        deleteServer.isPending || server.status !== "inactive"
+                      }
+                      className="bg-tertiary hover:bg-secondary text-primary rounded px-2 py-1 text-xs transition-colors disabled:opacity-50"
+                      title={
+                        server.status !== "inactive"
+                          ? "Stop server before deleting"
+                          : "Delete server"
+                      }
                     >
                       <FaTrash className="inline" />
                     </button>
@@ -319,15 +388,15 @@ export default function Sidebar({
             </div>
 
             {mcpServers.length === 0 && (
-              <div className="text-center mt-8">
-                <p className="text-sm text-secondary mb-4">
+              <div className="mt-8 text-center">
+                <p className="text-secondary mb-4 text-sm">
                   No MCP servers configured
                 </p>
                 <button
                   onClick={() => setShowAddServerDialog(true)}
-                  className="px-4 py-2 bg-button text-button rounded-lg hover:bg-button-hover transition-colors"
+                  className="bg-button text-button hover:bg-button-hover rounded-lg px-4 py-2 transition-colors"
                 >
-                  <FaPlus className="inline mr-2" />
+                  <FaPlus className="mr-2 inline" />
                   Add Your First Server
                 </button>
               </div>
@@ -335,17 +404,21 @@ export default function Sidebar({
           </div>
         )}
       </div>
-      
+
       {/* Add Server Dialog */}
       <AddServerDialog
         isOpen={showAddServerDialog}
         onClose={() => setShowAddServerDialog(false)}
         onServerAdded={() => void refetchServers()}
       />
-      
+
       {/* Edit Server Dialog */}
       <EditServerDialog
-        server={editingServer ? mcpServers.find(s => s.id === editingServer) ?? null : null}
+        server={
+          editingServer
+            ? (mcpServers.find((s) => s.id === editingServer) ?? null)
+            : null
+        }
         isOpen={!!editingServer}
         onClose={() => setEditingServer(null)}
         onServerUpdated={() => void refetchServers()}

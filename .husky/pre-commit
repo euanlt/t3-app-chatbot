@@ -1,0 +1,23 @@
+#!/bin/sh
+. "$(dirname -- "$0")/_/husky.sh"
+
+echo "🔍 Running pre-commit checks..."
+
+# Run TypeScript type checking (fastest check)
+echo "🔧 Running TypeScript type checking..."
+npm run typecheck
+if [ $? -ne 0 ]; then
+    echo "❌ TypeScript type checking failed! Please fix type errors before committing."
+    exit 1
+fi
+
+# Run Prettier check (also fast)
+echo "🎨 Checking code formatting..."
+npm run format:check
+if [ $? -ne 0 ]; then
+    echo "❌ Code formatting check failed! Run 'npm run format:write' to fix formatting."
+    exit 1
+fi
+
+echo "✅ Pre-commit checks passed!"
+echo "ℹ️  Note: Full ESLint check will run on CI/CD pipeline"

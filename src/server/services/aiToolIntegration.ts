@@ -28,12 +28,19 @@ export class AIToolIntegration {
    */
   private createToolDecisionPrompt(
     userMessage: string,
-    availableTools: Array<{ serverId: string; serverName: string; tool: { name: string; description: string; inputSchema?: unknown } }>
+    availableTools: Array<{
+      serverId: string;
+      serverName: string;
+      tool: { name: string; description: string; inputSchema?: unknown };
+    }>,
   ): string {
-    const toolDescriptions = availableTools.map(({ serverName, tool }) => 
-      `- ${serverName}/${tool.name}: ${tool.description}${tool.inputSchema ? '\n  Schema: ' + JSON.stringify(tool.inputSchema) : ''}`
-    ).join('\n');
-    
+    const toolDescriptions = availableTools
+      .map(
+        ({ serverName, tool }) =>
+          `- ${serverName}/${tool.name}: ${tool.description}${tool.inputSchema ? "\n  Schema: " + JSON.stringify(tool.inputSchema) : ""}`,
+      )
+      .join("\n");
+
     return `You are an AI assistant with access to external tools via MCP (Model Context Protocol).
 
 Available tools:
@@ -66,35 +73,39 @@ If no tools are needed, respond with:
   "reasoning": "The user's question can be answered without external tools"
 }`;
   }
-  
+
   /**
    * Use AI to determine which tools to use for a message
    */
   async determineToolUsage(
     userMessage: string,
-    _modelId: string
+    _modelId: string,
   ): Promise<ToolDecision[]> {
     try {
       const availableTools = mcpClient.getAllTools();
-      
+
       if (availableTools.length === 0) {
         logger.info("No MCP tools available");
         return [];
       }
-      
+
       logger.info("Available MCP tools for analysis", {
         count: availableTools.length,
-        tools: availableTools.map(t => `${t.serverName}/${t.tool.name}`)
+        tools: availableTools.map((t) => `${t.serverName}/${t.tool.name}`),
       });
-      
+
       // For now, use simple keyword matching
       // In production, this would call the AI model
       const decisions: ToolDecision[] = [];
       const lowerMessage = userMessage.toLowerCase();
-      
+
       for (const { serverId, serverName, tool } of availableTools) {
         // Tavily search
-        if (tool.name === "tavily_search" || tool.name === "search" || tool.name === "tavily-search") {
+        if (
+          tool.name === "tavily_search" ||
+          tool.name === "search" ||
+          tool.name === "tavily-search"
+        ) {
           if (
             lowerMessage.includes("search for") ||
             lowerMessage.includes("find information about") ||
@@ -117,40 +128,41 @@ If no tools are needed, respond with:
               /tell me about (.+)/i,
               /latest news about (.+)/i,
               /current (.+)/i,
-              /recent (.+)/i
+              /recent (.+)/i,
             ];
-            
+
             for (const pattern of patterns) {
               const match = pattern.exec(userMessage);
               if (match?.[1]) {
-                query = match[1].trim().replace(/\?+$/, ''); // Remove trailing question marks
+                query = match[1].trim().replace(/\?+$/, ""); // Remove trailing question marks
                 break;
               }
             }
-            
+
             // If no pattern matched, use the whole message as query
             if (query === userMessage && query.length > 100) {
               // For long messages, extract key terms
               query = userMessage.substring(0, 100) + "...";
             }
-            
+
             logger.info("Preparing Tavily search", {
               originalMessage: userMessage.substring(0, 50) + "...",
               extractedQuery: query,
-              toolName: tool.name
+              toolName: tool.name,
             });
-            
+
             decisions.push({
               shouldUseTool: true,
               toolName: tool.name,
               serverId,
               serverName,
               arguments: { query },
-              reasoning: "User is asking for information that requires web search"
+              reasoning:
+                "User is asking for information that requires web search",
             });
           }
         }
-        
+
         // File operations
         if (tool.name === "read_file" || tool.name === "list_files") {
           if (
@@ -160,49 +172,54 @@ If no tools are needed, respond with:
             lowerMessage.includes("list files") ||
             lowerMessage.includes("show files")
           ) {
-            const pathMatch = userMessage.match(/["']([^"']+)["']/);
+            const pathPattern = /["']([^"']+)["']/;
+            const pathMatch = pathPattern.exec(userMessage);
             const args: Record<string, unknown> = {};
-            
+
             if (pathMatch) {
               args.path = pathMatch[1];
             }
-            
+
             decisions.push({
               shouldUseTool: true,
               toolName: tool.name,
               serverId,
               serverName,
               arguments: args,
-              reasoning: "User is asking for file system operations"
+              reasoning: "User is asking for file system operations",
             });
           }
         }
       }
-      
+
       logger.info("Tool usage analysis complete", {
         messagePreview: userMessage.substring(0, 50) + "...",
         decisionsCount: decisions.length,
-        tools: decisions.map(d => `${d.serverName}/${d.toolName}`)
+        tools: decisions.map((d) => `${d.serverName}/${d.toolName}`),
       });
-      
+
       return decisions;
     } catch (error) {
       logger.error("Failed to determine tool usage", {
-        error: error instanceof Error ? error.message : "Unknown error"
+        error: error instanceof Error ? error.message : "Unknown error",
       });
       return [];
     }
   }
-  
+
   /**
    * Execute tool decisions and format results with tracking
    */
-  async executeToolDecisionsWithTracking(decisions: ToolDecision[]): Promise<{ results: ToolExecutionResult[], formattedResults: string }> {
+  async executeToolDecisionsWithTracking(
+    decisions: ToolDecision[],
+  ): Promise<{ results: ToolExecutionResult[]; formattedResults: string }> {
     if (decisions.length === 0) {
       return { results: [], formattedResults: "" };
     }
 
-    logger.info("Executing tool decisions with tracking", { count: decisions.length });
+    logger.info("Executing tool decisions with tracking", {
+      count: decisions.length,
+    });
 
     const results = await Promise.all(
       decisions.map(async (decision) => {
@@ -211,13 +228,13 @@ If no tools are needed, respond with:
           logger.info("Executing tool", {
             server: decision.serverName,
             tool: decision.toolName,
-            args: decision.arguments
+            args: decision.arguments,
           });
 
           const result = await mcpClient.executeTool(
             decision.serverId,
             decision.toolName,
-            decision.arguments
+            decision.arguments,
           );
 
           const executionTime = Date.now() - startTime;
@@ -228,14 +245,14 @@ If no tools are needed, respond with:
             serverId: decision.serverId,
             success: true,
             executionTime,
-            result
+            result,
           };
         } catch (error) {
           const executionTime = Date.now() - startTime;
           logger.error("Tool execution failed", {
             server: decision.serverName,
             tool: decision.toolName,
-            error: error instanceof Error ? error.message : "Unknown error"
+            error: error instanceof Error ? error.message : "Unknown error",
           });
 
           return {
@@ -244,18 +261,18 @@ If no tools are needed, respond with:
             serverId: decision.serverId,
             success: false,
             executionTime,
-            error: error instanceof Error ? error.message : "Unknown error"
+            error: error instanceof Error ? error.message : "Unknown error",
           };
         }
-      })
+      }),
     );
 
     // Format results for AI context
     const formattedResults = this.formatResultsForAI(results);
 
     logger.info("Tool execution with tracking complete", {
-      successCount: results.filter(r => r.success).length,
-      failureCount: results.filter(r => !r.success).length
+      successCount: results.filter((r) => r.success).length,
+      failureCount: results.filter((r) => !r.success).length,
     });
 
     return { results, formattedResults };
@@ -265,7 +282,8 @@ If no tools are needed, respond with:
    * Execute tool decisions and format results (legacy method)
    */
   async executeToolDecisions(decisions: ToolDecision[]): Promise<string> {
-    const { formattedResults } = await this.executeToolDecisionsWithTracking(decisions);
+    const { formattedResults } =
+      await this.executeToolDecisionsWithTracking(decisions);
     return formattedResults;
   }
 
@@ -276,50 +294,60 @@ If no tools are needed, respond with:
     if (results.length === 0) {
       return "";
     }
-    
-    const formattedResults = results.map(r => {
-      if (r.success) {
-        let resultStr = "";
-        if (typeof r.result === "string") {
-          resultStr = r.result;
-        } else if (r.result && typeof r.result === "object") {
-          // Handle different result formats
-          const res = r.result as Record<string, unknown>;
-          if (res.content) {
-            if (Array.isArray(res.content)) {
-              resultStr = res.content.map((c: unknown) => {
-                if (typeof c === 'object' && c !== null && 'text' in c) {
-                  return (c as { text: string }).text;
-                }
-                return JSON.stringify(c);
-              }).join("\n");
+
+    const formattedResults = results
+      .map((r) => {
+        if (r.success) {
+          let resultStr = "";
+          if (typeof r.result === "string") {
+            resultStr = r.result;
+          } else if (r.result && typeof r.result === "object") {
+            // Handle different result formats
+            const res = r.result as Record<string, unknown>;
+            if (res.content) {
+              if (Array.isArray(res.content)) {
+                resultStr = res.content
+                  .map((c: unknown) => {
+                    if (typeof c === "object" && c !== null && "text" in c) {
+                      return (c as { text: string }).text;
+                    }
+                    return JSON.stringify(c);
+                  })
+                  .join("\n");
+              } else {
+                resultStr =
+                  typeof res.content === "string"
+                    ? res.content
+                    : JSON.stringify(res.content);
+              }
             } else {
-              resultStr = String(res.content);
+              resultStr = JSON.stringify(r.result, null, 2);
             }
-          } else {
-            resultStr = JSON.stringify(r.result, null, 2);
           }
+
+          // Add timestamp and clear labeling for search results
+          const timestamp = new Date().toLocaleString();
+          let header = `[${r.serverName}/${r.toolName} - Success]`;
+
+          // Special formatting for search tools
+          if (
+            r.toolName.toLowerCase().includes("search") ||
+            r.toolName.toLowerCase().includes("tavily")
+          ) {
+            header = `🔍 LIVE WEB SEARCH RESULTS`;
+            return `${header}\nSource: ${r.serverName} (Retrieved: ${timestamp})\n\n${resultStr}`;
+          }
+
+          return `${header}\n${resultStr}`;
+        } else {
+          return `[${r.serverName}/${r.toolName} - Error]\n${r.error}`;
         }
-        
-        // Add timestamp and clear labeling for search results
-        const timestamp = new Date().toLocaleString();
-        let header = `[${r.serverName}/${r.toolName} - Success]`;
-        
-        // Special formatting for search tools
-        if (r.toolName.toLowerCase().includes('search') || r.toolName.toLowerCase().includes('tavily')) {
-          header = `🔍 LIVE WEB SEARCH RESULTS`;
-          return `${header}\nSource: ${r.serverName} (Retrieved: ${timestamp})\n\n${resultStr}`;
-        }
-        
-        return `${header}\n${resultStr}`;
-      } else {
-        return `[${r.serverName}/${r.toolName} - Error]\n${r.error}`;
-      }
-    }).join("\n\n---\n\n");
-    
+      })
+      .join("\n\n---\n\n");
+
     return formattedResults;
   }
-  
+
   /**
    * Create an enhanced system prompt that includes tool results
    */
@@ -327,7 +355,7 @@ If no tools are needed, respond with:
     if (!toolResults) {
       return basePrompt;
     }
-    
+
     return `${basePrompt}
 
 You have access to external tools via MCP (Model Context Protocol). The following tool results are available to help answer the user's question:
