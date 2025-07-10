@@ -58,9 +58,9 @@ export class MCPClientService {
         command: config.command,
         args: config.args,
         isServerless: Boolean(
-          process.env.VERCEL ||
-            process.env.NETLIFY ||
-            process.env.AWS_LAMBDA_FUNCTION_NAME,
+          process.env.VERCEL !== undefined ||
+            process.env.NETLIFY !== undefined ||
+            process.env.AWS_LAMBDA_FUNCTION_NAME !== undefined,
         ),
         error: enhancedMessage,
         originalError: errorMessage,
@@ -102,10 +102,10 @@ export class MCPClientService {
 
     // Check if we're in a serverless environment and warn about limitations
     const isServerless = Boolean(
-      process.env.VERCEL ||
-        process.env.NETLIFY ||
-        process.env.AWS_LAMBDA_FUNCTION_NAME ||
-        process.env.FUNCTION_NAME ||
+      process.env.VERCEL !== undefined ||
+        process.env.NETLIFY !== undefined ||
+        process.env.AWS_LAMBDA_FUNCTION_NAME !== undefined ||
+        process.env.FUNCTION_NAME !== undefined ||
         !process.env.HOME,
     );
 
@@ -272,10 +272,10 @@ export class MCPClientService {
 
     // Detect serverless environment
     const isServerless = Boolean(
-      process.env.VERCEL ||
-        process.env.NETLIFY ||
-        process.env.AWS_LAMBDA_FUNCTION_NAME ||
-        process.env.FUNCTION_NAME || // Google Cloud Functions
+      process.env.VERCEL !== undefined ||
+        process.env.NETLIFY !== undefined ||
+        process.env.AWS_LAMBDA_FUNCTION_NAME !== undefined ||
+        process.env.FUNCTION_NAME !== undefined || // Google Cloud Functions
         !process.env.HOME || // Often missing in serverless
         (process.env.NODE_ENV === "production" &&
           process.cwd().includes("/var/task")),
@@ -307,7 +307,7 @@ export class MCPClientService {
       mergedEnv.NPM_CONFIG_LOGLEVEL = "error";
 
       // Set a writable home directory fallback
-      if (!mergedEnv.HOME || !mergedEnv.HOME.startsWith("/")) {
+      if (!mergedEnv.HOME?.startsWith("/")) {
         mergedEnv.HOME = "/tmp";
       }
 
