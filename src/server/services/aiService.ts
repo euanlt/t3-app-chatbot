@@ -128,9 +128,16 @@ export class AiService {
 
     try {
       // Use AI to determine which tools to use
+      // Convert chat history to the format expected by aiToolIntegration
+      const formattedHistory = chatHistory.map((msg) => ({
+        role: msg.sender === "user" ? "user" : "assistant",
+        content: msg.message,
+      }));
+
       const toolDecisions = await aiToolIntegration.determineToolUsage(
         message,
         modelId,
+        formattedHistory,
       );
 
       if (toolDecisions.length > 0) {
@@ -299,7 +306,9 @@ export class AiService {
 
     // System message
     let systemContent =
-      "You are a helpful AI assistant with the ability to access real-time information through external tools.";
+      "You are a helpful AI assistant with the ability to access real-time information through external tools. " +
+      "When users ask for information that could benefit from external tools, you should mention if tools were used or could be used. " +
+      "Pay attention to the conversation context - if a user asks for 'more information' or refers to 'it' or 'that', look at previous messages to understand what they're referring to.";
 
     if (fileContext) {
       systemContent += `\n\nThe user has provided the following file content:\n${fileContext}`;
@@ -310,7 +319,7 @@ export class AiService {
     }
 
     if (toolResults) {
-      systemContent += `\n\n=== REAL-TIME INFORMATION RETRIEVED ===\nYou have successfully retrieved current, real-time information using external tools. This is NOT cached or historical data - it was just fetched moments ago.\n\n${toolResults}\n\n=== IMPORTANT INSTRUCTIONS ===\n1. Use the above real-time information to answer the user's question\n2. Present the information as current and up-to-date\n3. Do NOT say you cannot access the internet or browse the web - you just did!\n4. Cite the information naturally in your response\n5. The search results above are from live web sources`;
+      systemContent += `\n\n=== REAL-TIME INFORMATION RETRIEVED ===\nYou have successfully retrieved current, real-time information using external tools. This is NOT cached or historical data - it was just fetched moments ago.\n\n${toolResults}\n\n=== IMPORTANT INSTRUCTIONS ===\n1. Use the above real-time information to answer the user's question\n2. Present the information as current and up-to-date\n3. Do NOT say you cannot access the internet or browse the web - you just did!\n4. Cite the information naturally in your response\n5. The search results above are from live web sources\n6. If the user asks for more information, you can mention that additional queries can be made with the available tools`;
     }
 
     messages.push({ role: "system", content: systemContent });

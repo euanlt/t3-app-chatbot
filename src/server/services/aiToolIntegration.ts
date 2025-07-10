@@ -80,6 +80,7 @@ If no tools are needed, respond with:
   async determineToolUsage(
     userMessage: string,
     _modelId: string,
+    chatHistory?: Array<{ role: string; content: string }>,
   ): Promise<ToolDecision[]> {
     try {
       const availableTools = mcpClient.getAllTools();
@@ -98,6 +99,22 @@ If no tools are needed, respond with:
       // In production, this would call the AI model
       const decisions: ToolDecision[] = [];
       const lowerMessage = userMessage.toLowerCase();
+
+      // Build context from recent messages
+      let conversationContext = userMessage;
+      if (chatHistory && chatHistory.length > 0) {
+        // Get last 3 messages for context
+        const recentMessages = chatHistory.slice(-3);
+        const contextMessages = recentMessages
+          .map((msg) => `${msg.role}: ${msg.content}`)
+          .join("\n");
+        conversationContext = contextMessages + "\nuser: " + userMessage;
+
+        logger.info("Using conversation context for tool determination", {
+          historyLength: chatHistory.length,
+          recentMessagesUsed: recentMessages.length,
+        });
+      }
 
       // Check for explicit "use [mcp]" pattern
       const usePattern = /use\s+(\w+(?:[\s-]\w+)*)/i;
@@ -175,6 +192,98 @@ If no tools are needed, respond with:
               matchedServer: serverName,
               matchedTool: tool.name,
             });
+          }
+        }
+      }
+
+      // Check for context-based requests (e.g., "get more information on it")
+      const contextPatterns = [
+        /get\s+more\s+(?:information|info|details?)\s+(?:on|about)?\s+(?:it|that|this)/i,
+        /tell\s+me\s+more\s+about\s+(?:it|that|this)/i,
+        /more\s+(?:information|info|details?)\s+(?:on|about)?\s+(?:it|that|this)/i,
+        /what\s+else\s+(?:can|could)\s+you\s+(?:tell|show)\s+me/i,
+      ];
+
+      const hasContextRequest = contextPatterns.some((pattern) =>
+        pattern.test(userMessage),
+      );
+
+      if (hasContextRequest && chatHistory && chatHistory.length > 0) {
+        logger.info("Detected context-based tool request");
+
+        // Look for tool mentions in recent conversation
+        const recentContext = conversationContext.toLowerCase();
+
+        for (const { serverId, serverName, tool } of availableTools) {
+          const serverNameLower = serverName.toLowerCase();
+          const toolNameLower = tool.name.toLowerCase();
+
+          // Check if this tool was mentioned recently
+          if (
+            recentContext.includes(serverNameLower) ||
+            recentContext.includes(toolNameLower) ||
+            recentContext.includes("context7") ||
+            recentContext.includes("rails") ||
+            recentContext.includes("documentation")
+          ) {
+            logger.info("Found relevant tool from context", {
+              tool: tool.name,
+              server: serverName,
+            });
+
+            // Extract what the user wants more info about
+            let query = userMessage;
+
+            // Try to extract the subject from previous messages
+            if (chatHistory.length > 0) {
+              const lastUserMessage = [...chatHistory]
+                .reverse()
+                .find((msg) => msg.role === "user");
+              if (lastUserMessage) {
+                // Use previous query as context
+                query = lastUserMessage.content + " - " + userMessage;
+              }
+            }
+
+            // Prepare arguments based on tool schema
+            let toolArguments: Record<string, unknown> = {};
+
+            if (tool.inputSchema && typeof tool.inputSchema === "object") {
+              const schema = tool.inputSchema as Record<string, unknown>;
+
+              if (schema.type === "object" && schema.properties) {
+                const properties = Object.entries(schema.properties);
+                let paramName = "query";
+
+                if (
+                  schema.required &&
+                  Array.isArray(schema.required) &&
+                  schema.required.length > 0
+                ) {
+                  paramName = schema.required[0];
+                } else if (properties.length > 0 && properties[0]) {
+                  paramName = properties[0][0] ?? "query";
+                }
+
+                toolArguments[paramName] = query;
+              } else {
+                toolArguments = { query };
+              }
+            } else {
+              toolArguments = { query };
+            }
+
+            decisions.push({
+              shouldUseTool: true,
+              toolName: tool.name,
+              serverId,
+              serverName,
+              arguments: toolArguments,
+              reasoning:
+                "User requested more information about previously discussed topic",
+            });
+
+            break; // Use first matching tool
           }
         }
       }
