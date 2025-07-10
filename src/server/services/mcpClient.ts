@@ -1,5 +1,6 @@
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
+import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 import { createLogger } from "./logger";
 import type { MCPServerConfig } from "../api/routers/mcp";
 
@@ -10,7 +11,7 @@ const activeClients = new Map<string, MCPConnection>();
 
 interface MCPConnection {
   client: Client;
-  transport: StdioClientTransport;
+  transport: StdioClientTransport | StreamableHTTPClientTransport;
   config: MCPServerConfig;
 }
 
@@ -29,8 +30,7 @@ export class MCPClientService {
       if (config.transport === "stdio") {
         await this.connectStdio(config);
       } else if (config.transport === "http") {
-        // TODO: Implement HTTP transport
-        throw new Error("HTTP transport not yet implemented");
+        await this.connectHttp(config);
       }
     } catch (error) {
       const errorMessage =
@@ -394,6 +394,67 @@ export class MCPClientService {
       id: config.id,
       name: config.name,
     });
+
+    // Discover capabilities
+    await this.discoverCapabilities(config.id);
+  }
+
+  /**
+   * Connect to an HTTP-based MCP server
+   */
+  private async connectHttp(config: MCPServerConfig): Promise<void> {
+    if (!config.url) {
+      throw new Error("URL is required for HTTP transport");
+    }
+
+    logger.info("Creating HTTP transport", {
+      id: config.id,
+      url: config.url,
+      hasAuth: !!config.auth,
+    });
+
+    // Create transport options
+    const transportOptions: {
+      requestInit?: RequestInit;
+    } = {};
+
+    // Add authentication headers if provided
+    if (config.auth) {
+      const headers: Record<string, string> = {};
+
+      if (config.auth.type === "bearer" && config.auth.token) {
+        headers.Authorization = `Bearer ${config.auth.token}`;
+      }
+      // TODO: Add OAuth support when needed
+
+      transportOptions.requestInit = {
+        headers,
+      };
+    }
+
+    const transport = new StreamableHTTPClientTransport(
+      new URL(config.url),
+      transportOptions,
+    );
+
+    const client = new Client(
+      {
+        name: "t3-app-chatbot",
+        version: "1.0.0",
+      },
+      {
+        capabilities: {},
+      },
+    );
+
+    await client.connect(transport);
+
+    logger.info("HTTP transport connected successfully", {
+      id: config.id,
+      serverVersion: client.getServerVersion(),
+    });
+
+    activeClients.set(config.id, { client, transport, config });
 
     // Discover capabilities
     await this.discoverCapabilities(config.id);

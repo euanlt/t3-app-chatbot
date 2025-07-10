@@ -92,6 +92,15 @@ const templates: ServerTemplate[] = [
     ],
     requirements: "Node.js, SQLite file",
   },
+  {
+    id: "example-http",
+    name: "Example HTTP Server",
+    description: "Connect to a remote MCP server via HTTP",
+    icon: <FaGlobe className="text-indigo-500" />,
+    transport: "http" as const,
+    url: "https://your-mcp-server.example.com/api/mcp",
+    requirements: "HTTP endpoint with MCP protocol support",
+  },
 ];
 
 interface ServerTemplatesProps {
@@ -142,6 +151,21 @@ export default function ServerTemplates({
       }
 
       template.env = envVars;
+    }
+
+    // For HTTP templates that need URL customization
+    if (template.transport === "http" && template.url) {
+      if (
+        template.url.includes("example.com") ||
+        template.url.includes("your-")
+      ) {
+        const customUrl = prompt("Enter the MCP server URL:", template.url);
+        if (!customUrl) {
+          setSelectedTemplate(null);
+          return;
+        }
+        template.url = customUrl;
+      }
     }
 
     addServer.mutate({

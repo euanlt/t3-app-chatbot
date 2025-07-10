@@ -15,6 +15,7 @@ import { api } from "~/trpc/react";
 import ThemeToggle from "~/app/_components/theme/ThemeToggle";
 import AddServerDialog from "~/app/_components/mcp/AddServerDialog";
 import EditServerDialog from "~/app/_components/mcp/EditServerDialog";
+import ServerTemplates from "~/app/_components/mcp/ServerTemplates";
 
 interface SidebarProps {
   selectedModel: string;
@@ -388,17 +389,25 @@ export default function Sidebar({
             </div>
 
             {mcpServers.length === 0 && (
-              <div className="mt-8 text-center">
-                <p className="text-secondary mb-4 text-sm">
-                  No MCP servers configured
-                </p>
-                <button
-                  onClick={() => setShowAddServerDialog(true)}
-                  className="bg-button text-button hover:bg-button-hover rounded-lg px-4 py-2 transition-colors"
-                >
-                  <FaPlus className="mr-2 inline" />
-                  Add Your First Server
-                </button>
+              <div>
+                <ServerTemplates
+                  onTemplateSelect={() => setShowAddServerDialog(true)}
+                />
+
+                <div className="border-primary mt-6 border-t pt-6">
+                  <div className="text-center">
+                    <p className="text-secondary mb-4 text-sm">
+                      Or create a custom MCP server
+                    </p>
+                    <button
+                      onClick={() => setShowAddServerDialog(true)}
+                      className="bg-button text-button hover:bg-button-hover rounded-lg px-4 py-2 transition-colors"
+                    >
+                      <FaPlus className="mr-2 inline" />
+                      Create Custom Server
+                    </button>
+                  </div>
+                </div>
               </div>
             )}
           </div>
