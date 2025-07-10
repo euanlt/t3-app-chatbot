@@ -392,6 +392,7 @@ export default function Sidebar({
               <div>
                 <ServerTemplates
                   onTemplateSelect={() => setShowAddServerDialog(true)}
+                  onServerAdded={() => void refetchServers()}
                 />
 
                 <div className="border-primary mt-6 border-t pt-6">

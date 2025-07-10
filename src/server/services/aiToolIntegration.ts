@@ -99,6 +99,46 @@ If no tools are needed, respond with:
       const decisions: ToolDecision[] = [];
       const lowerMessage = userMessage.toLowerCase();
 
+      // Check for explicit "use [mcp]" pattern
+      const usePattern = /use\s+(\w+(?:[\s-]\w+)*)/i;
+      const useMatch = usePattern.exec(userMessage);
+      if (useMatch && useMatch[1]) {
+        const requestedName = useMatch[1].toLowerCase().replace(/\s+/g, "-");
+        logger.info("User requested specific MCP tool", { requestedName });
+
+        // Find matching server or tool
+        for (const { serverId, serverName, tool } of availableTools) {
+          const serverNameLower = serverName.toLowerCase().replace(/\s+/g, "-");
+          const toolNameLower = tool.name.toLowerCase().replace(/_/g, "-");
+
+          if (
+            serverNameLower.includes(requestedName) ||
+            toolNameLower.includes(requestedName) ||
+            requestedName.includes(serverNameLower) ||
+            requestedName.includes(toolNameLower)
+          ) {
+            // Extract the rest of the message as the query/argument
+            const queryStart = (useMatch.index ?? 0) + useMatch[0].length;
+            const query = userMessage.substring(queryStart).trim();
+
+            decisions.push({
+              shouldUseTool: true,
+              toolName: tool.name,
+              serverId,
+              serverName,
+              arguments: { query: query || userMessage },
+              reasoning: `User explicitly requested to use ${requestedName}`,
+            });
+
+            logger.info("Matched user request to MCP tool", {
+              requestedName,
+              matchedServer: serverName,
+              matchedTool: tool.name,
+            });
+          }
+        }
+      }
+
       for (const { serverId, serverName, tool } of availableTools) {
         // Tavily search
         if (

@@ -162,6 +162,7 @@ export default function AddServerDialog({
                 });
                 setShowCustomForm(true);
               }}
+              onServerAdded={onServerAdded}
             />
 
             <div className="border-primary mt-6 border-t pt-4">

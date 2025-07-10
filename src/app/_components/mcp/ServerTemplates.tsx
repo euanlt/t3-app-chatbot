@@ -105,16 +105,20 @@ const templates: ServerTemplate[] = [
 
 interface ServerTemplatesProps {
   onTemplateSelect: (template: ServerTemplate) => void;
+  onServerAdded?: () => void;
 }
 
 export default function ServerTemplates({
   onTemplateSelect,
+  onServerAdded,
 }: ServerTemplatesProps) {
   const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null);
 
   const addServer = api.mcp.addServer.useMutation({
     onSuccess: () => {
       setSelectedTemplate(null);
+      // Call the parent's callback to trigger a refetch
+      onServerAdded?.();
     },
     onError: (error) => {
       alert(`Failed to add server: ${error.message}`);
@@ -189,12 +193,14 @@ export default function ServerTemplates({
         {templates.map((template) => (
           <div
             key={template.id}
-            className="border-primary hover:border-hover bg-primary cursor-pointer rounded-lg border p-3 transition-colors"
-            onClick={() => onTemplateSelect(template)}
+            className="border-primary hover:border-hover bg-primary rounded-lg border p-3 transition-colors"
           >
             <div className="flex items-start gap-3">
               <div className="mt-1 flex-shrink-0">{template.icon}</div>
-              <div className="flex-1">
+              <div
+                className="flex-1 cursor-pointer"
+                onClick={() => onTemplateSelect(template)}
+              >
                 <div className="text-primary text-sm font-medium">
                   {template.name}
                 </div>
