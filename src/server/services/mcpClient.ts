@@ -57,10 +57,10 @@ export class MCPClientService {
         name: config.name,
         command: config.command,
         args: config.args,
-        isServerless: !!(
+        isServerless: Boolean(
           process.env.VERCEL ||
-          process.env.NETLIFY ||
-          process.env.AWS_LAMBDA_FUNCTION_NAME
+            process.env.NETLIFY ||
+            process.env.AWS_LAMBDA_FUNCTION_NAME,
         ),
         error: enhancedMessage,
         originalError: errorMessage,
@@ -68,7 +68,8 @@ export class MCPClientService {
 
       const detailedError = new Error(enhancedMessage);
       // Preserve the original error as a property
-      (detailedError as any).originalError = error;
+      (detailedError as unknown as Record<string, unknown>).originalError =
+        error;
       throw detailedError;
     }
   }
@@ -91,7 +92,7 @@ export class MCPClientService {
     // For Tavily specifically, ensure API key is present
     if (config.command === "npx" && config.args?.includes("tavily-mcp")) {
       const tavilyApiKey =
-        config.env?.TAVILY_API_KEY || process.env.TAVILY_API_KEY;
+        config.env?.TAVILY_API_KEY ?? process.env.TAVILY_API_KEY;
       if (!tavilyApiKey || tavilyApiKey.trim() === "") {
         throw new Error(
           "TAVILY_API_KEY environment variable is required for Tavily MCP server",
@@ -100,12 +101,12 @@ export class MCPClientService {
     }
 
     // Check if we're in a serverless environment and warn about limitations
-    const isServerless = !!(
+    const isServerless = Boolean(
       process.env.VERCEL ||
-      process.env.NETLIFY ||
-      process.env.AWS_LAMBDA_FUNCTION_NAME ||
-      process.env.FUNCTION_NAME ||
-      !process.env.HOME
+        process.env.NETLIFY ||
+        process.env.AWS_LAMBDA_FUNCTION_NAME ||
+        process.env.FUNCTION_NAME ||
+        !process.env.HOME,
     );
 
     if (isServerless) {
@@ -134,7 +135,7 @@ export class MCPClientService {
   private async ensureServerlessDirectories(): Promise<void> {
     try {
       const fs = await import("fs");
-      const path = await import("path");
+      // const path = await import("path"); // Reserved for future use
 
       const dirs = [
         "/tmp/.npm-cache",
@@ -155,7 +156,7 @@ export class MCPClientService {
       for (const dir of dirs) {
         try {
           fs.chmodSync(dir, 0o755);
-        } catch (chmodError) {
+        } catch {
           // Permission changes may fail in some serverless environments, but that's okay
           logger.debug("Could not set permissions for directory", { dir });
         }
@@ -270,14 +271,14 @@ export class MCPClientService {
     }
 
     // Detect serverless environment
-    const isServerless = !!(
+    const isServerless = Boolean(
       process.env.VERCEL ||
-      process.env.NETLIFY ||
-      process.env.AWS_LAMBDA_FUNCTION_NAME ||
-      process.env.FUNCTION_NAME || // Google Cloud Functions
-      !process.env.HOME || // Often missing in serverless
-      (process.env.NODE_ENV === "production" &&
-        process.cwd().includes("/var/task"))
+        process.env.NETLIFY ||
+        process.env.AWS_LAMBDA_FUNCTION_NAME ||
+        process.env.FUNCTION_NAME || // Google Cloud Functions
+        !process.env.HOME || // Often missing in serverless
+        (process.env.NODE_ENV === "production" &&
+          process.cwd().includes("/var/task")),
     );
 
     // Create merged environment variables
@@ -338,7 +339,7 @@ export class MCPClientService {
     });
 
     // Modify args for serverless environment if needed
-    let finalArgs = config.args ?? [];
+    const finalArgs = config.args ?? [];
 
     // For npm/npx commands in serverless, add flags to reduce operations
     if (
