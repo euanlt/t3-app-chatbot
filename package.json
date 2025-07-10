@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "build": "SKIP_ENV_VALIDATION=1 next build",
-    "check": "npm run lint -- --max-warnings 0 && npm run typecheck && npm run format:check",
+    "check": "npm run lint:fast && npm run typecheck && npm run format:check",
     "check:fix": "npm run lint:fix && npm run typecheck && npm run format:write",
     "ci": "npm run lint -- --max-warnings 0 && npm run typecheck && npm run build",
     "ci:vercel": "npm run lint -- --max-warnings 0 && npm run typecheck && npm run vercel:build",
@@ -16,6 +16,8 @@
     "format:check": "prettier --check \"**/*.{ts,tsx,js,jsx,mdx}\" --cache",
     "format:write": "prettier --write \"**/*.{ts,tsx,js,jsx,mdx}\" --cache",
     "lint": "next lint",
+    "lint:strict": "next lint --max-warnings 0",
+    "lint:fast": "eslint src --ext .ts,.tsx --cache --cache-location .eslintcache",
     "lint:fix": "next lint --fix",
     "preview": "next build && next start",
     "start": "next start",

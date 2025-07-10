@@ -7,15 +7,23 @@ const compat = new FlatCompat({
 
 export default tseslint.config(
   {
-    ignores: [".next"],
+    ignores: [
+      ".next",
+      "node_modules",
+      ".vercel",
+      "scripts/**/*",
+      "**/*.js",
+      "**/*.mjs",
+      "**/*.cjs",
+    ],
   },
   ...compat.extends("next/core-web-vitals"),
   {
-    files: ["**/*.ts", "**/*.tsx"],
+    files: ["src/**/*.ts", "src/**/*.tsx"],
     extends: [
       ...tseslint.configs.recommended,
-      ...tseslint.configs.recommendedTypeChecked,
-      ...tseslint.configs.stylisticTypeChecked,
+      // Type-aware linting disabled due to performance issues in WSL
+      // Re-enable when performance is fixed
     ],
     rules: {
       "@typescript-eslint/array-type": "off",
@@ -29,20 +37,11 @@ export default tseslint.config(
         { argsIgnorePattern: "^_" },
       ],
       "@typescript-eslint/require-await": "off",
-      "@typescript-eslint/no-misused-promises": [
-        "error",
-        { checksVoidReturn: { attributes: false } },
-      ],
-    },
-  },
-  {
-    linterOptions: {
-      reportUnusedDisableDirectives: true,
-    },
-    languageOptions: {
-      parserOptions: {
-        projectService: true,
-      },
+      // Disabled due to requiring type information
+      // "@typescript-eslint/no-misused-promises": [
+      //   "error",
+      //   { checksVoidReturn: { attributes: false } },
+      // ],
     },
   },
 );

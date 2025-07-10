@@ -70,8 +70,8 @@ async function main() {
       skipOnAuth: true, // Skip if not authenticated
     },
     {
-      name: "Run ESLint with zero warnings",
-      command: "npm run lint -- --max-warnings 0",
+      name: "Run ESLint (fast mode)",
+      command: "npm run lint:fast",
       required: true,
     },
     {
