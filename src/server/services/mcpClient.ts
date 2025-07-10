@@ -621,7 +621,8 @@ export class MCPClientService {
       serverId,
       toolName,
       hasArgs: !!args,
-      args: args ? JSON.stringify(args) : undefined,
+      args: args,
+      argsKeys: args ? Object.keys(args) : [],
     });
 
     try {
@@ -637,10 +638,42 @@ export class MCPClientService {
 
       return result;
     } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error";
+
+      // Check if this is a parameter validation error
+      const isParameterError =
+        errorMessage.includes("-32602") ||
+        errorMessage.includes("Invalid arguments");
+
+      if (isParameterError) {
+        // Try to find the tool's schema to show what was expected
+        const toolInfo = connection.config.tools?.find(
+          (t) => t.name === toolName,
+        );
+
+        logger.error("Tool parameter validation failed", {
+          serverId,
+          toolName,
+          providedArgs: args,
+          expectedSchema: toolInfo?.inputSchema,
+          error: errorMessage,
+        });
+
+        // Create a more helpful error message
+        const enhancedError = new Error(
+          `Tool '${toolName}' parameter error: ${errorMessage}. ` +
+            `Provided arguments: ${JSON.stringify(args || {})}. ` +
+            `Check the tool's input schema for required parameters.`,
+        );
+        throw enhancedError;
+      }
+
       logger.error("Failed to execute tool", {
         serverId,
         toolName,
-        error: error instanceof Error ? error.message : "Unknown error",
+        args,
+        error: errorMessage,
       });
       throw error;
     }

@@ -121,12 +121,52 @@ If no tools are needed, respond with:
             const queryStart = (useMatch.index ?? 0) + useMatch[0].length;
             const query = userMessage.substring(queryStart).trim();
 
+            // Determine the correct parameter name from the tool's input schema
+            let toolArguments: Record<string, unknown> = {};
+
+            if (tool.inputSchema && typeof tool.inputSchema === "object") {
+              const schema = tool.inputSchema as Record<string, unknown>;
+
+              // Handle JSON Schema format
+              if (schema.type === "object" && schema.properties) {
+                // Find the first required string parameter
+                const properties = Object.entries(schema.properties);
+                let paramName = "query"; // default fallback
+
+                // First try to find a required parameter
+                if (
+                  schema.required &&
+                  Array.isArray(schema.required) &&
+                  schema.required.length > 0
+                ) {
+                  paramName = schema.required[0];
+                } else if (properties.length > 0 && properties[0]) {
+                  // Otherwise use the first property
+                  paramName = properties[0][0] ?? "query";
+                }
+
+                toolArguments[paramName] = query || userMessage;
+
+                logger.info("Mapped user input to tool parameter", {
+                  tool: tool.name,
+                  paramName,
+                  value: toolArguments[paramName],
+                });
+              } else {
+                // Fallback for non-standard schemas
+                toolArguments = { query: query || userMessage };
+              }
+            } else {
+              // No schema available, use default
+              toolArguments = { query: query || userMessage };
+            }
+
             decisions.push({
               shouldUseTool: true,
               toolName: tool.name,
               serverId,
               serverName,
-              arguments: { query: query || userMessage },
+              arguments: toolArguments,
               reasoning: `User explicitly requested to use ${requestedName}`,
             });
 
