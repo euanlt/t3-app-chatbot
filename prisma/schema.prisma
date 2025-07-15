@@ -1,0 +1,49 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// User model for future authentication
+model User {
+  id            String         @id @default(cuid())
+  email         String?        @unique
+  name          String?
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  conversations Conversation[]
+}
+
+// Conversation model to group messages
+model Conversation {
+  id        String    @id @default(cuid())
+  title     String?
+  userId    String?
+  user      User?     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  messages  Message[]
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  @@index([userId])
+}
+
+// Message model for chat history
+model Message {
+  id             String       @id @default(cuid())
+  conversationId String
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  sender         String // "user" or "ai"
+  content        String
+  model          String?
+  mcpToolsUsed   String? // JSON string of MCP tools used
+  createdAt      DateTime     @default(now())
+
+  @@index([conversationId])
+}
+

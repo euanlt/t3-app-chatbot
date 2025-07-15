@@ -3,6 +3,7 @@ import { chatRouter } from "~/server/api/routers/chat";
 import { modelsRouter } from "~/server/api/routers/models";
 import { filesRouter } from "~/server/api/routers/files";
 import { mcpRouter } from "~/server/api/routers/mcp";
+import { conversationRouter } from "~/server/api/routers/conversation";
 import { createCallerFactory, createTRPCRouter } from "~/server/api/trpc";
 
 /**
@@ -16,6 +17,7 @@ export const appRouter = createTRPCRouter({
   models: modelsRouter,
   files: filesRouter,
   mcp: mcpRouter,
+  conversation: conversationRouter,
 });
 
 // export type definition of API

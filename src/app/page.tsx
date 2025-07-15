@@ -15,6 +15,9 @@ export default function Home() {
     "mistralai/mistral-small-3.2-24b-instruct:free",
   );
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
+  const [currentConversationId, setCurrentConversationId] = useState<
+    string | undefined
+  >();
 
   const handleFileUpload = async (files: FileList) => {
     // For now, just store file metadata
@@ -47,6 +50,8 @@ export default function Home() {
         uploadedFiles={uploadedFiles}
         onFileUpload={handleFileUpload}
         onFileRemove={handleFileRemove}
+        currentConversationId={currentConversationId}
+        onSelectConversation={setCurrentConversationId}
       />
 
       {/* Chat Area */}
@@ -54,6 +59,7 @@ export default function Home() {
         <ChatWindow
           selectedModel={selectedModel}
           uploadedFiles={uploadedFiles}
+          conversationId={currentConversationId}
         />
       </div>
     </div>

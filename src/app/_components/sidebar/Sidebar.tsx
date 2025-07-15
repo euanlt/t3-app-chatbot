@@ -10,12 +10,15 @@ import {
   FaStop,
   FaTrash,
   FaEdit,
+  FaComments,
+  FaEllipsisV,
 } from "react-icons/fa";
 import { api } from "~/trpc/react";
 import ThemeToggle from "~/app/_components/theme/ThemeToggle";
 import AddServerDialog from "~/app/_components/mcp/AddServerDialog";
 import EditServerDialog from "~/app/_components/mcp/EditServerDialog";
 import ServerTemplates from "~/app/_components/mcp/ServerTemplates";
+import { formatDistanceToNow } from "~/utils/date";
 
 interface SidebarProps {
   selectedModel: string;
@@ -23,6 +26,8 @@ interface SidebarProps {
   uploadedFiles: Array<{ id: string; name: string }>;
   onFileUpload: (files: FileList) => void;
   onFileRemove: (fileId: string) => void;
+  currentConversationId?: string;
+  onSelectConversation: (conversationId: string | undefined) => void;
 }
 
 export default function Sidebar({
@@ -31,20 +36,57 @@ export default function Sidebar({
   uploadedFiles,
   onFileUpload,
   onFileRemove,
+  currentConversationId,
+  onSelectConversation,
 }: SidebarProps) {
-  const [activeTab, setActiveTab] = useState<"models" | "files" | "plugins">(
-    "models",
-  );
+  const [activeTab, setActiveTab] = useState<
+    "models" | "files" | "plugins" | "conversations"
+  >("models");
   const [showAddServerDialog, setShowAddServerDialog] = useState(false);
   const [editingServer, setEditingServer] = useState<string | null>(null);
+  const [showConversationMenu, setShowConversationMenu] = useState<
+    string | null
+  >(null);
 
   // Fetch models using tRPC
   const { data: modelsData } = api.models.getAvailableModels.useQuery();
   const { data: mcpServersData, refetch: refetchServers } =
     api.mcp.getUserServers.useQuery();
+  const { data: conversationsData, refetch: refetchConversations } =
+    api.conversation.list.useInfiniteQuery(
+      { limit: 20 },
+      { getNextPageParam: (lastPage) => lastPage.nextCursor },
+    );
 
   const models = modelsData?.models ?? [];
   const mcpServers = mcpServersData?.servers ?? [];
+  const conversations =
+    conversationsData?.pages.flatMap((page) => page.conversations) ?? [];
+
+  // Conversation management mutations
+  const createConversation = api.conversation.create.useMutation({
+    onSuccess: (newConversation) => {
+      onSelectConversation(newConversation.id);
+      void refetchConversations();
+    },
+  });
+
+  const deleteConversation = api.conversation.delete.useMutation({
+    onSuccess: () => {
+      if (currentConversationId === showConversationMenu) {
+        onSelectConversation(undefined);
+      }
+      setShowConversationMenu(null);
+      void refetchConversations();
+    },
+  });
+
+  const deleteAllConversations = api.conversation.deleteAll.useMutation({
+    onSuccess: () => {
+      onSelectConversation(undefined);
+      void refetchConversations();
+    },
+  });
 
   // Server management mutations
   const startServer = api.mcp.startServer.useMutation({
@@ -116,6 +158,17 @@ export default function Sidebar({
         >
           <FaPlug className="mr-1 inline" />
           Plugins
+        </button>
+        <button
+          onClick={() => setActiveTab("conversations")}
+          className={`flex-1 px-4 py-2 text-sm font-medium transition-colors ${
+            activeTab === "conversations"
+              ? "border-b-2 border-blue-600 text-blue-600"
+              : "text-secondary hover:text-primary"
+          }`}
+        >
+          <FaComments className="mr-1 inline" />
+          History
         </button>
       </div>
 
@@ -409,6 +462,117 @@ export default function Sidebar({
                     </button>
                   </div>
                 </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Conversations Tab */}
+        {activeTab === "conversations" && (
+          <div>
+            <div className="mb-4 flex items-center justify-between">
+              <h3 className="text-primary font-medium">Conversations</h3>
+              <button
+                onClick={() => createConversation.mutate({})}
+                className="bg-button text-button hover:bg-button-hover shadow-theme-sm rounded-lg p-2 transition-colors"
+                title="New conversation"
+              >
+                <FaPlus className="h-3 w-3" />
+              </button>
+            </div>
+
+            <div className="space-y-2">
+              {conversations.length === 0 ? (
+                <div className="py-8 text-center text-gray-500 dark:text-gray-400">
+                  <FaComments className="mx-auto mb-2 h-8 w-8 opacity-50" />
+                  <p className="text-sm">No conversations yet</p>
+                  <p className="mt-1 text-xs">
+                    Start chatting to see history here
+                  </p>
+                </div>
+              ) : (
+                conversations.map((conversation) => (
+                  <div
+                    key={conversation.id}
+                    className={`group relative cursor-pointer rounded-lg border p-3 transition-colors ${
+                      currentConversationId === conversation.id
+                        ? "border-blue-500 bg-blue-50/50 dark:bg-blue-900/20"
+                        : "border-primary bg-primary hover:bg-gray-50 dark:hover:bg-gray-800"
+                    }`}
+                    onClick={() => onSelectConversation(conversation.id)}
+                  >
+                    <div className="flex items-start justify-between">
+                      <div className="min-w-0 flex-1">
+                        <div className="text-primary truncate text-sm font-medium">
+                          {conversation.title || "New Conversation"}
+                        </div>
+                        {conversation.messages.length > 0 && (
+                          <div className="text-secondary mt-1 truncate text-xs">
+                            {conversation.messages[0]?.content}
+                          </div>
+                        )}
+                        <div className="text-tertiary mt-1 text-xs">
+                          {formatDistanceToNow(
+                            new Date(conversation.updatedAt),
+                          )}{" "}
+                          ago
+                        </div>
+                      </div>
+                      <div className="relative">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setShowConversationMenu(
+                              showConversationMenu === conversation.id
+                                ? null
+                                : conversation.id,
+                            );
+                          }}
+                          className="text-secondary hover:text-primary rounded p-1 opacity-0 group-hover:opacity-100 hover:bg-gray-200 dark:hover:bg-gray-700"
+                        >
+                          <FaEllipsisV className="h-3 w-3" />
+                        </button>
+                        {showConversationMenu === conversation.id && (
+                          <div className="absolute top-6 right-0 z-10 min-w-[100px] rounded-lg border border-gray-200 bg-white py-1 shadow-lg dark:border-gray-700 dark:bg-gray-800">
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                if (confirm("Delete this conversation?")) {
+                                  deleteConversation.mutate({
+                                    id: conversation.id,
+                                  });
+                                }
+                              }}
+                              className="flex w-full items-center px-3 py-1 text-left text-sm text-red-600 hover:bg-gray-100 dark:hover:bg-gray-700"
+                            >
+                              <FaTrash className="mr-2 h-3 w-3" />
+                              Delete
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+
+            {conversations.length > 0 && (
+              <div className="mt-4 border-t border-gray-200 pt-4 dark:border-gray-700">
+                <button
+                  onClick={() => {
+                    if (
+                      confirm(
+                        "Delete all conversations? This cannot be undone.",
+                      )
+                    ) {
+                      deleteAllConversations.mutate({});
+                    }
+                  }}
+                  className="w-full rounded-lg px-3 py-2 text-sm text-red-600 transition-colors hover:bg-red-50 dark:hover:bg-red-900/20"
+                >
+                  Clear All History
+                </button>
               </div>
             )}
           </div>

@@ -18,20 +18,59 @@ interface Message {
 interface ChatWindowProps {
   selectedModel?: string;
   uploadedFiles?: Array<{ id: string; name: string; content?: string }>;
+  conversationId?: string;
 }
 
 export default function ChatWindow({
   selectedModel,
   uploadedFiles,
+  conversationId,
 }: ChatWindowProps) {
   const [inputValue, setInputValue] = useState("");
   const [messages, setMessages] = useState<Message[]>([]);
+  const [currentConversationId, setCurrentConversationId] = useState<
+    string | undefined
+  >(conversationId);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+
+  // Fetch chat history when conversation changes
+  const { data: historyData } = api.chat.getChatHistory.useQuery(
+    { conversationId: currentConversationId!, limit: 100 },
+    { enabled: !!currentConversationId },
+  );
+
+  // Load messages from history
+  useEffect(() => {
+    if (historyData?.messages) {
+      const formattedMessages: Message[] = historyData.messages.map((msg) => ({
+        id: msg.id,
+        sender: msg.sender as "user" | "ai",
+        message: msg.content,
+        timestamp: new Date(msg.createdAt),
+        model: msg.model ?? undefined,
+        mcpToolsUsed: msg.mcpToolsUsed ?? undefined,
+      }));
+      setMessages(formattedMessages);
+    }
+  }, [historyData]);
+
+  // Update conversation when prop changes
+  useEffect(() => {
+    setCurrentConversationId(conversationId);
+    if (!conversationId) {
+      setMessages([]);
+    }
+  }, [conversationId]);
 
   // tRPC mutation for sending messages
   const sendMessage = api.chat.sendMessage.useMutation({
     onSuccess: (response) => {
+      // Update current conversation ID if a new one was created
+      if (response.conversationId && !currentConversationId) {
+        setCurrentConversationId(response.conversationId);
+      }
+
       // Add AI response to messages
       const aiMessage: Message = {
         id: generateUUID(),
@@ -87,6 +126,7 @@ export default function ChatWindow({
       sendMessage.mutate({
         message: inputValue,
         model: selectedModel,
+        conversationId: currentConversationId,
         chatHistory: messages.map((m) => ({
           sender: m.sender,
           message: m.message,
@@ -115,7 +155,9 @@ export default function ChatWindow({
           <div className="text-secondary mt-8 text-center">
             <p className="text-lg">Welcome to AI Chatbot</p>
             <p className="mt-2 text-sm">
-              Start a conversation by typing a message below
+              {currentConversationId
+                ? "Loading conversation history..."
+                : "Start a conversation by typing a message below"}
             </p>
           </div>
         ) : (

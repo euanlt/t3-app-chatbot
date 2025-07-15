@@ -50,3 +50,4 @@ yarn-error.log*
 
 # accidental subdirectories
 t3-app-chatbot
+/generated/prisma
