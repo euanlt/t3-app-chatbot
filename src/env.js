@@ -20,6 +20,8 @@ export const env = createEnv({
     FIRECRAWL_API_KEY: z.string().optional(),
     GOOGLE_API_KEY: z.string().optional(),
     OPENAI_API_KEY: z.string().optional(),
+    TAVILY_API_KEY: z.string().optional(),
+    ENCRYPTION_KEY: z.string().optional().default("default-key-change-in-production"),
   },
 
   /**
@@ -46,6 +48,8 @@ export const env = createEnv({
     FIRECRAWL_API_KEY: process.env.FIRECRAWL_API_KEY,
     GOOGLE_API_KEY: process.env.GOOGLE_API_KEY,
     OPENAI_API_KEY: process.env.OPENAI_API_KEY,
+    TAVILY_API_KEY: process.env.TAVILY_API_KEY,
+    ENCRYPTION_KEY: process.env.ENCRYPTION_KEY,
   },
   /**
    * Run `build` or `dev` with `SKIP_ENV_VALIDATION` to skip env validation. This is especially

@@ -18,6 +18,8 @@ model User {
   createdAt     DateTime       @default(now())
   updatedAt     DateTime       @updatedAt
   conversations Conversation[]
+  customModels  CustomModel[]
+  apiKeys       UserApiKey[]
 }
 
 // Conversation model to group messages
@@ -45,5 +47,39 @@ model Message {
   createdAt      DateTime     @default(now())
 
   @@index([conversationId])
+}
+
+// Custom model configuration
+model CustomModel {
+  id          String   @id @default(cuid())
+  userId      String?
+  user        User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name        String
+  modelId     String   // The actual model ID to use with the provider
+  provider    String   // "openai", "gemini", "claude", "openrouter"
+  description String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([userId])
+  @@index([provider])
+}
+
+// User API keys for different providers
+model UserApiKey {
+  id        String   @id @default(cuid())
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  provider  String   // "openai", "gemini", "claude", "openrouter"
+  keyName   String   // Display name for the key
+  encryptedKey String // Encrypted API key
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, provider, keyName])
+  @@index([userId])
+  @@index([provider])
 }
 

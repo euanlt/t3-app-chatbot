@@ -127,6 +127,7 @@ export default function ChatWindow({
         message: inputValue,
         model: selectedModel,
         conversationId: currentConversationId,
+        userId: "default-user", // Using default user until authentication is implemented
         chatHistory: messages.map((m) => ({
           sender: m.sender,
           message: m.message,

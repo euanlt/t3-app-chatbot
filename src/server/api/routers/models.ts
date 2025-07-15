@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { createTRPCRouter, publicProcedure } from "~/server/api/trpc";
 import { createLogger } from "~/server/services/logger";
+import { db } from "~/server/db";
 
 const logger = createLogger("ModelsRouter");
 
@@ -15,8 +16,9 @@ interface ModelInfo {
     completion: string;
   };
   context_length: number;
-  category: "free" | "premium" | "experimental";
+  category: "free" | "premium" | "experimental" | "custom";
   recommended?: boolean;
+  isCustom?: boolean;
 }
 
 // Curated list of popular models
@@ -111,64 +113,177 @@ const curatedModels: ModelInfo[] = [
 ];
 
 export const modelsRouter = createTRPCRouter({
-  getAvailableModels: publicProcedure.query(async () => {
-    logger.info("Fetching available models");
+  getAvailableModels: publicProcedure
+    .input(z.object({
+      userId: z.string().optional(),
+      includeCustom: z.boolean().optional().default(true),
+    }))
+    .query(async ({ input }) => {
+      logger.info("Fetching available models", { userId: input.userId, includeCustom: input.includeCustom });
 
-    try {
-      // For now, return the curated list
-      // TODO: Integrate with OpenRouter API when API key is configured
-      return {
-        models: curatedModels,
-        totalCount: curatedModels.length,
-      };
-    } catch (error) {
-      logger.error(
-        "Error fetching models",
-        error instanceof Error ? error : { error },
-      );
-      // Return curated list as fallback
-      return {
-        models: curatedModels,
-        totalCount: curatedModels.length,
-      };
-    }
-  }),
+      try {
+        let allModels: ModelInfo[] = [...curatedModels];
+
+        // Add custom models if requested and user ID is provided
+        if (input.includeCustom && input.userId) {
+          const customModels = await db.customModel.findMany({
+            where: {
+              userId: input.userId,
+              isActive: true,
+            },
+            orderBy: { createdAt: "desc" },
+          });
+
+          const customModelInfos: ModelInfo[] = customModels.map(model => ({
+            id: model.id,
+            name: model.name,
+            provider: model.provider,
+            description: model.description || `Custom ${model.provider} model`,
+            pricing: { prompt: "varies", completion: "varies" },
+            context_length: 0, // Unknown for custom models
+            category: "custom" as const,
+            isCustom: true,
+          }));
+
+          allModels = [...allModels, ...customModelInfos];
+        }
+
+        return {
+          models: allModels,
+          totalCount: allModels.length,
+        };
+      } catch (error) {
+        logger.error(
+          "Error fetching models",
+          error instanceof Error ? error : { error },
+        );
+        // Return curated list as fallback
+        return {
+          models: curatedModels,
+          totalCount: curatedModels.length,
+        };
+      }
+    }),
 
   getModelById: publicProcedure
     .input(
       z.object({
         modelId: z.string(),
+        userId: z.string().optional(),
       }),
     )
     .query(async ({ input }) => {
-      logger.info("Fetching model by ID", { modelId: input.modelId });
+      logger.info("Fetching model by ID", { modelId: input.modelId, userId: input.userId });
 
-      const model = curatedModels.find((m) => m.id === input.modelId);
-
-      if (!model) {
-        logger.warn("Model not found", { modelId: input.modelId });
-        return null;
+      // First check curated models
+      const curatedModel = curatedModels.find((m) => m.id === input.modelId);
+      if (curatedModel) {
+        return curatedModel;
       }
 
-      return model;
+      // Then check custom models if user ID is provided
+      if (input.userId) {
+        try {
+          const customModel = await db.customModel.findFirst({
+            where: {
+              id: input.modelId,
+              userId: input.userId,
+              isActive: true,
+            },
+          });
+
+          if (customModel) {
+            return {
+              id: customModel.id,
+              name: customModel.name,
+              provider: customModel.provider,
+              description: customModel.description || `Custom ${customModel.provider} model`,
+              pricing: { prompt: "varies", completion: "varies" },
+              context_length: 0,
+              category: "custom" as const,
+              isCustom: true,
+            };
+          }
+        } catch (error) {
+          logger.error("Error fetching custom model", { modelId: input.modelId, error });
+        }
+      }
+
+      logger.warn("Model not found", { modelId: input.modelId });
+      return null;
     }),
 
-  getModelCategories: publicProcedure.query(async () => {
-    logger.info("Fetching model categories");
+  getModelCategories: publicProcedure
+    .input(z.object({
+      userId: z.string().optional(),
+      includeCustom: z.boolean().optional().default(true),
+    }))
+    .query(async ({ input }) => {
+      logger.info("Fetching model categories", { userId: input.userId, includeCustom: input.includeCustom });
 
-    const categories = {
-      free: curatedModels.filter((m) => m.category === "free"),
-      premium: curatedModels.filter((m) => m.category === "premium"),
-      experimental: curatedModels.filter((m) => m.category === "experimental"),
-    };
+      try {
+        let allModels: ModelInfo[] = [...curatedModels];
 
-    return {
-      categories,
-      counts: {
-        free: categories.free.length,
-        premium: categories.premium.length,
-        experimental: categories.experimental.length,
-      },
-    };
-  }),
+        // Add custom models if requested and user ID is provided
+        if (input.includeCustom && input.userId) {
+          const customModels = await db.customModel.findMany({
+            where: {
+              userId: input.userId,
+              isActive: true,
+            },
+            orderBy: { createdAt: "desc" },
+          });
+
+          const customModelInfos: ModelInfo[] = customModels.map(model => ({
+            id: model.id,
+            name: model.name,
+            provider: model.provider,
+            description: model.description || `Custom ${model.provider} model`,
+            pricing: { prompt: "varies", completion: "varies" },
+            context_length: 0,
+            category: "custom" as const,
+            isCustom: true,
+          }));
+
+          allModels = [...allModels, ...customModelInfos];
+        }
+
+        const categories = {
+          free: allModels.filter((m) => m.category === "free"),
+          premium: allModels.filter((m) => m.category === "premium"),
+          experimental: allModels.filter((m) => m.category === "experimental"),
+          custom: allModels.filter((m) => m.category === "custom"),
+        };
+
+        return {
+          categories,
+          counts: {
+            free: categories.free.length,
+            premium: categories.premium.length,
+            experimental: categories.experimental.length,
+            custom: categories.custom.length,
+          },
+        };
+      } catch (error) {
+        logger.error("Error fetching model categories", { error });
+        
+        // Return curated categories as fallback
+        const categories = {
+          free: curatedModels.filter((m) => m.category === "free"),
+          premium: curatedModels.filter((m) => m.category === "premium"),
+          experimental: curatedModels.filter((m) => m.category === "experimental"),
+          custom: [],
+        };
+
+        return {
+          categories,
+          counts: {
+            free: categories.free.length,
+            premium: categories.premium.length,
+            experimental: categories.experimental.length,
+            custom: 0,
+          },
+        };
+      }
+    }),
 });

@@ -2,6 +2,7 @@ import { z } from "zod";
 import { createTRPCRouter, publicProcedure } from "~/server/api/trpc";
 import { createLogger } from "~/server/services/logger";
 import { aiService } from "~/server/services/aiService";
+import { multiProviderAiService } from "~/server/services/multiProviderAiService";
 import { TRPCError } from "@trpc/server";
 import { db } from "~/server/db";
 
@@ -70,14 +71,58 @@ export const chatRouter = createTRPCRouter({
         input.model ?? "mistralai/mistral-small-3.2-24b-instruct:free";
       logger.info("Using model", { model: modelToUse });
 
-      // Call the AI service
-      const response = await aiService.getChatCompletion(
-        modelToUse,
-        input.message,
-        input.chatHistory,
-        input.fileContext,
-        input.mcpContext,
-      );
+      // Determine if this is a custom model
+      let isCustomModel = false;
+      let customModelInfo = null;
+      
+      if (input.userId) {
+        // Check if the model is a custom model
+        customModelInfo = await db.customModel.findFirst({
+          where: {
+            id: modelToUse,
+            userId: input.userId,
+            isActive: true,
+          },
+        });
+        
+        if (customModelInfo) {
+          isCustomModel = true;
+          logger.info("Using custom model", { 
+            modelId: customModelInfo.id,
+            provider: customModelInfo.provider,
+            name: customModelInfo.name 
+          });
+        }
+      }
+
+      // Call the appropriate AI service
+      let response;
+      if (isCustomModel && customModelInfo) {
+        // Use multi-provider service for custom models
+        response = await multiProviderAiService.getChatCompletion(
+          {
+            id: customModelInfo.id,
+            name: customModelInfo.name,
+            modelId: customModelInfo.modelId,
+            provider: customModelInfo.provider,
+            description: customModelInfo.description || undefined,
+          },
+          input.message,
+          input.chatHistory,
+          input.fileContext,
+          input.mcpContext,
+          input.userId,
+        );
+      } else {
+        // Use existing OpenRouter service for default models
+        response = await aiService.getChatCompletion(
+          modelToUse,
+          input.message,
+          input.chatHistory,
+          input.fileContext,
+          input.mcpContext,
+        );
+      }
 
       // Save AI response to database
       await db.message.create({

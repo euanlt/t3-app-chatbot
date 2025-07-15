@@ -24,6 +24,8 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.56.0",
+    "@google/generative-ai": "^0.24.1",
     "@modelcontextprotocol/sdk": "^1.15.0",
     "@prisma/client": "^6.11.1",
     "@t3-oss/env-nextjs": "^0.12.0",
@@ -34,7 +36,7 @@
     "axios": "^1.9.0",
     "dotenv": "^16.3.1",
     "next": "^15.2.3",
-    "openai": "^5.1.0",
+    "openai": "^5.9.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "react-icons": "^5.5.0",

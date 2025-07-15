@@ -12,12 +12,16 @@ import {
   FaEdit,
   FaComments,
   FaEllipsisV,
+  FaKey,
+  FaTimes,
 } from "react-icons/fa";
 import { api } from "~/trpc/react";
 import ThemeToggle from "~/app/_components/theme/ThemeToggle";
 import AddServerDialog from "~/app/_components/mcp/AddServerDialog";
 import EditServerDialog from "~/app/_components/mcp/EditServerDialog";
 import ServerTemplates from "~/app/_components/mcp/ServerTemplates";
+import AddCustomModelDialog from "~/app/_components/customModels/AddCustomModelDialog";
+import ApiKeyDialog from "~/app/_components/customModels/ApiKeyDialog";
 import { formatDistanceToNow } from "~/utils/date";
 
 interface SidebarProps {
@@ -47,9 +51,13 @@ export default function Sidebar({
   const [showConversationMenu, setShowConversationMenu] = useState<
     string | null
   >(null);
+  const [showCustomModelDialog, setShowCustomModelDialog] = useState(false);
+  const [showApiKeyDialog, setShowApiKeyDialog] = useState(false);
 
   // Fetch models using tRPC
-  const { data: modelsData } = api.models.getAvailableModels.useQuery();
+  const { data: modelsData, refetch: refetchModels } = api.models.getAvailableModels.useQuery({
+    userId: "default-user", // Using default user until authentication is implemented
+  });
   const { data: mcpServersData, refetch: refetchServers } =
     api.mcp.getUserServers.useQuery();
   const { data: conversationsData, refetch: refetchConversations } =
@@ -85,6 +93,17 @@ export default function Sidebar({
     onSuccess: () => {
       onSelectConversation(undefined);
       void refetchConversations();
+    },
+  });
+
+  // Custom model deletion
+  const deleteCustomModel = api.customModels.deleteCustomModel.useMutation({
+    onSuccess: (_, variables) => {
+      // If the deleted model was currently selected, switch to default
+      if (selectedModel === variables.id) {
+        onModelChange("mistralai/mistral-small-3.2-24b-instruct:free");
+      }
+      void refetchModels();
     },
   });
 
@@ -259,6 +278,87 @@ export default function Sidebar({
                     </div>
                   ))}
               </div>
+            </div>
+
+            {/* Custom Models */}
+            <div className="mt-4">
+              <div className="mb-2 flex items-center justify-between">
+                <h4 className="text-secondary text-sm font-medium">
+                  Custom Models
+                </h4>
+                <div className="flex gap-1">
+                  <button
+                    onClick={() => setShowApiKeyDialog(true)}
+                    className="hover:bg-hover rounded p-1 text-xs transition-colors"
+                    title="Manage API Keys"
+                  >
+                    <FaKey className="h-3 w-3" />
+                  </button>
+                  <button
+                    onClick={() => setShowCustomModelDialog(true)}
+                    className="hover:bg-hover rounded p-1 text-xs transition-colors"
+                    title="Add Custom Model"
+                  >
+                    <FaPlus className="h-3 w-3" />
+                  </button>
+                </div>
+              </div>
+              <div className="space-y-2">
+                {models
+                  .filter((m) => m.category === "custom")
+                  .map((model) => (
+                    <div
+                      key={model.id}
+                      className={`shadow-theme-sm group rounded-lg border p-3 transition-all ${
+                        selectedModel === model.id
+                          ? "border-blue-500 bg-blue-500/10 text-blue-600 dark:bg-blue-500/20 dark:text-blue-400"
+                          : "border-primary hover:border-hover bg-primary"
+                      }`}
+                    >
+                      <div
+                        onClick={() => onModelChange(model.id)}
+                        className="cursor-pointer"
+                      >
+                        <div
+                          className={`flex items-center justify-between text-sm font-medium ${selectedModel === model.id ? "text-blue-600 dark:text-blue-400" : "text-primary"}`}
+                        >
+                          <span className="flex-1">{model.name}</span>
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs bg-purple-100 text-purple-700 px-2 py-0.5 rounded">
+                              {model.provider}
+                            </span>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                if (confirm(`Delete custom model "${model.name}"?`)) {
+                                  deleteCustomModel.mutate({ id: model.id });
+                                }
+                              }}
+                              disabled={deleteCustomModel.isPending}
+                              className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded hover:bg-red-100 dark:hover:bg-red-900/20 disabled:opacity-50"
+                              title="Delete custom model"
+                            >
+                              <FaTimes className="h-3 w-3 text-red-500" />
+                            </button>
+                          </div>
+                        </div>
+                        <div
+                          className={`mt-1 text-xs ${selectedModel === model.id ? "text-blue-600/80 dark:text-blue-400/80" : "text-secondary"}`}
+                        >
+                          {model.description}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+              </div>
+              {models.filter((m) => m.category === "custom").length === 0 && (
+                <div className="text-center py-4">
+                  <p className="text-secondary text-sm">No custom models yet</p>
+                  <p className="text-tertiary text-xs mt-1">
+                    Add your own OpenAI, Gemini, or Claude models
+                  </p>
+                </div>
+              )}
             </div>
           </div>
         )}
@@ -596,6 +696,19 @@ export default function Sidebar({
         isOpen={!!editingServer}
         onClose={() => setEditingServer(null)}
         onServerUpdated={() => void refetchServers()}
+      />
+
+      {/* Add Custom Model Dialog */}
+      <AddCustomModelDialog
+        isOpen={showCustomModelDialog}
+        onClose={() => setShowCustomModelDialog(false)}
+        onModelAdded={() => void refetchModels()}
+      />
+
+      {/* API Key Dialog */}
+      <ApiKeyDialog
+        isOpen={showApiKeyDialog}
+        onClose={() => setShowApiKeyDialog(false)}
       />
     </div>
   );
