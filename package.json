@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "SKIP_ENV_VALIDATION=1 next build",
+    "build": "prisma generate && SKIP_ENV_VALIDATION=1 next build",
     "check": "npm run lint:fast && npm run typecheck && npm run format:check",
     "check:fix": "npm run lint:fix && npm run typecheck && npm run format:write",
     "ci": "npm run lint -- --max-warnings 0 && npm run typecheck && npm run build",
