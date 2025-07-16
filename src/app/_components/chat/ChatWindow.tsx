@@ -3,8 +3,12 @@
 import { useState, useRef, useEffect } from "react";
 import { IoSend } from "react-icons/io5";
 import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
+import rehypeHighlight from "rehype-highlight";
+import rehypeRaw from "rehype-raw";
 import { api } from "~/trpc/react";
 import MCPUsageIndicator, { type MCPToolUsage } from "./MCPUsageIndicator";
+import "highlight.js/styles/github-dark.css";
 
 interface Message {
   id: string;
@@ -147,6 +151,37 @@ export default function ChatWindow({
     }
   };
 
+  // Helper function to extract code content from pre element children
+  const extractCodeContent = (children: any): string | null => {
+    if (!children) return null;
+    
+    // Handle different structures that ReactMarkdown might produce
+    if (typeof children === 'string') return children;
+    
+    if (Array.isArray(children)) {
+      const codeElement = children.find(child => child?.props?.children);
+      if (codeElement?.props?.children) {
+        return extractCodeContent(codeElement.props.children);
+      }
+    }
+    
+    if (children?.props?.children) {
+      return extractCodeContent(children.props.children);
+    }
+    
+    return null;
+  };
+
+  // Helper function to copy text to clipboard
+  const copyToClipboard = async (text: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      // You could add a toast notification here
+    } catch (err) {
+      console.error('Failed to copy:', err);
+    }
+  };
+
   return (
     <div className="bg-chat flex h-full flex-col">
       {/* Messages Area */}
@@ -176,8 +211,63 @@ export default function ChatWindow({
                 }`}
               >
                 {msg.sender === "ai" ? (
-                  <div className="prose prose-sm max-w-none">
-                    <ReactMarkdown>{msg.message}</ReactMarkdown>
+                  <div className="markdown-chat">
+                    <ReactMarkdown
+                      remarkPlugins={[remarkGfm]}
+                      rehypePlugins={[rehypeHighlight, rehypeRaw]}
+                      components={{
+                        // Custom link component to open in new tab
+                        a: ({ href, children }) => (
+                          <a
+                            href={href}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-blue-600 dark:text-blue-400 underline hover:decoration-2"
+                          >
+                            {children}
+                          </a>
+                        ),
+                        // Custom code component with copy button
+                        pre: ({ children }) => {
+                          const codeContent = extractCodeContent(children);
+                          return (
+                            <div className="code-block-wrapper relative">
+                              <pre className="bg-gray-900 dark:bg-gray-950 text-gray-100 rounded-lg p-4 overflow-x-auto">
+                                {children}
+                              </pre>
+                              {codeContent && (
+                                <button
+                                  onClick={() => copyToClipboard(codeContent)}
+                                  className="copy-button absolute top-2 right-2 px-2 py-1 text-xs bg-gray-700 hover:bg-gray-600 text-white rounded transition-colors"
+                                  title="Copy code"
+                                >
+                                  Copy
+                                </button>
+                              )}
+                            </div>
+                          );
+                        },
+                        // Style inline code
+                        code: ({ className, children, ...props }) => {
+                          const match = /language-(\w+)/.exec(className || "");
+                          const isInline = !match;
+                          return isInline ? (
+                            <code
+                              className="bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200 px-1.5 py-0.5 rounded text-sm font-mono"
+                              {...props}
+                            >
+                              {children}
+                            </code>
+                          ) : (
+                            <code className={className} {...props}>
+                              {children}
+                            </code>
+                          );
+                        },
+                      }}
+                    >
+                      {msg.message}
+                    </ReactMarkdown>
                   </div>
                 ) : (
                   <p className="whitespace-pre-wrap">{msg.message}</p>

@@ -20,6 +20,13 @@ export default function Home() {
   const [currentConversationId, setCurrentConversationId] = useState<
     string | undefined
   >();
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('sidebarCollapsed');
+      return saved === 'true';
+    }
+    return false;
+  });
 
   const uploadFileMutation = api.files.uploadFile.useMutation();
   const deleteFileMutation = api.files.deleteFile.useMutation();
@@ -33,6 +40,13 @@ export default function Home() {
       refetchInterval: 2000, // Poll every 2 seconds
     }
   );
+
+  // Save sidebar collapsed state to localStorage
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('sidebarCollapsed', isSidebarCollapsed.toString());
+    }
+  }, [isSidebarCollapsed]);
 
   // Update file status when polling returns data
   useEffect(() => {
@@ -120,10 +134,24 @@ export default function Home() {
         onFileRemove={handleFileRemove}
         currentConversationId={currentConversationId}
         onSelectConversation={setCurrentConversationId}
+        isCollapsed={isSidebarCollapsed}
+        onToggleCollapse={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
       />
 
       {/* Chat Area */}
-      <div className="flex flex-1 flex-col">
+      <div className="flex flex-1 flex-col relative">
+        {/* Floating expand button when sidebar is collapsed */}
+        {isSidebarCollapsed && (
+          <button
+            onClick={() => setIsSidebarCollapsed(false)}
+            className="absolute left-4 top-4 z-10 bg-button text-button hover:bg-button-hover p-2 rounded-lg shadow-lg transition-all"
+            title="Expand sidebar"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+              <path fillRule="evenodd" d="M3 5a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM3 10a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM3 15a1 1 0 011-1h6a1 1 0 110 2H4a1 1 0 01-1-1z" clipRule="evenodd" />
+            </svg>
+          </button>
+        )}
         <ChatWindow
           selectedModel={selectedModel}
           uploadedFiles={uploadedFiles}

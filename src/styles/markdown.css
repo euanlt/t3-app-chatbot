@@ -1,0 +1,216 @@
+/* Custom Markdown Styles for Chat Messages */
+
+/* Prose overrides for chat messages */
+.markdown-chat {
+  @apply text-inherit leading-relaxed;
+}
+
+/* Headers */
+.markdown-chat h1 {
+  @apply text-2xl font-bold mb-4 mt-6 first:mt-0;
+}
+
+.markdown-chat h2 {
+  @apply text-xl font-bold mb-3 mt-5 first:mt-0;
+}
+
+.markdown-chat h3 {
+  @apply text-lg font-semibold mb-2 mt-4 first:mt-0;
+}
+
+.markdown-chat h4 {
+  @apply text-base font-semibold mb-2 mt-3 first:mt-0;
+}
+
+.markdown-chat h5 {
+  @apply text-sm font-semibold mb-1 mt-2 first:mt-0;
+}
+
+.markdown-chat h6 {
+  @apply text-sm font-semibold mb-1 mt-2 first:mt-0 opacity-90;
+}
+
+/* Paragraphs and text */
+.markdown-chat p {
+  @apply mb-3 last:mb-0;
+}
+
+/* Links */
+.markdown-chat a {
+  @apply text-blue-600 dark:text-blue-400 underline decoration-1 underline-offset-2 hover:decoration-2 transition-all;
+}
+
+/* Lists */
+.markdown-chat ul {
+  @apply list-disc list-inside mb-3 pl-4 space-y-1;
+}
+
+.markdown-chat ol {
+  @apply list-decimal list-inside mb-3 pl-4 space-y-1;
+}
+
+.markdown-chat li {
+  @apply pl-1;
+}
+
+.markdown-chat li > p {
+  @apply inline;
+}
+
+/* Nested lists */
+.markdown-chat ul ul,
+.markdown-chat ol ul {
+  @apply mt-1 mb-1 ml-4;
+}
+
+.markdown-chat ul ol,
+.markdown-chat ol ol {
+  @apply mt-1 mb-1 ml-4;
+}
+
+/* Blockquotes */
+.markdown-chat blockquote {
+  @apply border-l-4 border-gray-300 dark:border-gray-600 pl-4 py-1 my-3 italic text-gray-700 dark:text-gray-300;
+}
+
+/* Inline code */
+.markdown-chat code:not(pre code) {
+  @apply bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200 px-1.5 py-0.5 rounded text-sm font-mono;
+}
+
+/* Code blocks */
+.markdown-chat pre {
+  @apply bg-gray-900 dark:bg-gray-950 text-gray-100 rounded-lg p-4 my-3 overflow-x-auto;
+}
+
+.markdown-chat pre code {
+  @apply text-sm font-mono leading-relaxed;
+}
+
+/* Tables */
+.markdown-chat table {
+  @apply w-full border-collapse my-3;
+}
+
+.markdown-chat th {
+  @apply bg-gray-100 dark:bg-gray-800 font-semibold text-left p-2 border border-gray-300 dark:border-gray-600;
+}
+
+.markdown-chat td {
+  @apply p-2 border border-gray-300 dark:border-gray-600;
+}
+
+.markdown-chat tbody tr:nth-child(odd) {
+  @apply bg-gray-50 dark:bg-gray-900/50;
+}
+
+/* Horizontal rules */
+.markdown-chat hr {
+  @apply my-4 border-gray-300 dark:border-gray-600;
+}
+
+/* Images */
+.markdown-chat img {
+  @apply max-w-full h-auto rounded-lg my-3;
+}
+
+/* Task lists (GitHub Flavored Markdown) */
+.markdown-chat input[type="checkbox"] {
+  @apply mr-2;
+}
+
+.markdown-chat .task-list-item {
+  @apply list-none;
+}
+
+/* Strong emphasis */
+.markdown-chat strong {
+  @apply font-semibold;
+}
+
+.markdown-chat em {
+  @apply italic;
+}
+
+/* Strikethrough */
+.markdown-chat del {
+  @apply line-through opacity-70;
+}
+
+/* Syntax highlighting themes */
+.markdown-chat .hljs {
+  @apply bg-transparent p-0;
+}
+
+/* Light theme syntax highlighting */
+.markdown-chat .hljs-keyword,
+.markdown-chat .hljs-selector-tag,
+.markdown-chat .hljs-title {
+  @apply text-purple-600;
+}
+
+.markdown-chat .hljs-string,
+.markdown-chat .hljs-title.class_,
+.markdown-chat .hljs-title.class_.inherited__,
+.markdown-chat .hljs-title.function_ {
+  @apply text-green-600;
+}
+
+.markdown-chat .hljs-number,
+.markdown-chat .hljs-literal,
+.markdown-chat .hljs-symbol,
+.markdown-chat .hljs-bullet {
+  @apply text-orange-600;
+}
+
+.markdown-chat .hljs-comment,
+.markdown-chat .hljs-quote {
+  @apply text-gray-500 italic;
+}
+
+.markdown-chat .hljs-attr,
+.markdown-chat .hljs-variable,
+.markdown-chat .hljs-template-variable {
+  @apply text-blue-600;
+}
+
+/* Dark theme syntax highlighting */
+.dark .markdown-chat .hljs-keyword,
+.dark .markdown-chat .hljs-selector-tag,
+.dark .markdown-chat .hljs-title {
+  @apply text-purple-400;
+}
+
+.dark .markdown-chat .hljs-string,
+.dark .markdown-chat .hljs-title.class_,
+.dark .markdown-chat .hljs-title.class_.inherited__,
+.dark .markdown-chat .hljs-title.function_ {
+  @apply text-green-400;
+}
+
+.dark .markdown-chat .hljs-number,
+.dark .markdown-chat .hljs-literal,
+.dark .markdown-chat .hljs-symbol,
+.dark .markdown-chat .hljs-bullet {
+  @apply text-orange-400;
+}
+
+.dark .markdown-chat .hljs-comment,
+.dark .markdown-chat .hljs-quote {
+  @apply text-gray-400 italic;
+}
+
+.dark .markdown-chat .hljs-attr,
+.dark .markdown-chat .hljs-variable,
+.dark .markdown-chat .hljs-template-variable {
+  @apply text-blue-400;
+}
+
+/* Copy button for code blocks */
+.markdown-chat .code-block-wrapper {
+  @apply relative;
+}
+
+.markdown-chat .copy-button {
+  @apply absolute top-2 right-2 px-2 py-1 text-xs bg-gray-700 hover:bg-gray-600 text-white rounded transition-colors;
+}
