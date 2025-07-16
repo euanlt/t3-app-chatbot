@@ -6,6 +6,7 @@ import type { File } from "@prisma/client";
 import { env } from "~/env";
 import mammoth from "mammoth";
 import pdf from "pdf-parse/lib/pdf-parse.js";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 
 const logger = createLogger("FileProcessingService");
 
@@ -29,7 +30,12 @@ const FILE_PROCESSORS: Record<string, (filePath: string) => Promise<string>> = {
   "application/pdf": extractPdfText,
   "application/vnd.openxmlformats-officedocument.wordprocessingml.document": extractDocxText,
   
-  // Add more processors as needed
+  // Images (with OCR)
+  "image/jpeg": extractImageTextWithGemini,
+  "image/png": extractImageTextWithGemini,
+  "image/gif": extractImageTextWithGemini,
+  "image/webp": extractImageTextWithGemini,
+  "image/bmp": extractImageTextWithGemini,
 };
 
 export interface FileUploadResult {
@@ -61,6 +67,79 @@ async function extractDocxText(filePath: string): Promise<string> {
     logger.error("Failed to extract DOCX text", { filePath, error });
     throw new Error("Failed to extract text from DOCX");
   }
+}
+
+async function extractImageTextWithGemini(filePath: string): Promise<string> {
+  try {
+    // Check if Google API key is available
+    if (!env.GOOGLE_API_KEY || env.GOOGLE_API_KEY.trim() === "") {
+      logger.warn("Google API key not available, skipping OCR", { filePath });
+      return "[Image uploaded - Google API key required for text extraction]";
+    }
+
+    const genAI = new GoogleGenerativeAI(env.GOOGLE_API_KEY);
+    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+
+    // Read image file and convert to base64
+    const imageBuffer = await fs.readFile(filePath);
+    const base64Image = imageBuffer.toString('base64');
+    
+    // Get MIME type from file extension
+    const mimeType = getMimeTypeFromPath(filePath);
+    
+    logger.info("Processing image with Gemini Vision", { 
+      filePath, 
+      mimeType, 
+      imageSize: imageBuffer.length 
+    });
+
+    // Create prompt for OCR and image description
+    const prompt = `Please analyze this image and provide:
+1. Extract ALL visible text exactly as it appears (if any)
+2. If it's a screenshot, document, or diagram, focus on text extraction
+3. If it's a photo or artwork, describe what you see
+4. If no text is found, provide a detailed description of the image
+
+Format your response as:
+TEXT FOUND: [extracted text or "None"]
+DESCRIPTION: [description of the image]`;
+
+    const imageParts = [{
+      inlineData: {
+        data: base64Image,
+        mimeType: mimeType
+      }
+    }];
+
+    const result = await model.generateContent([prompt, ...imageParts]);
+    const response = result.response.text();
+    
+    logger.info("Gemini Vision OCR completed", { 
+      filePath, 
+      responseLength: response.length 
+    });
+    
+    return response;
+  } catch (error) {
+    logger.error("Failed to extract text from image", { filePath, error });
+    
+    // Return a descriptive error message instead of throwing
+    return `[Image uploaded - OCR failed: ${error instanceof Error ? error.message : 'Unknown error'}]`;
+  }
+}
+
+function getMimeTypeFromPath(filePath: string): string {
+  const ext = path.extname(filePath).toLowerCase();
+  const mimeTypes: Record<string, string> = {
+    '.jpg': 'image/jpeg',
+    '.jpeg': 'image/jpeg',
+    '.png': 'image/png',
+    '.gif': 'image/gif',
+    '.webp': 'image/webp',
+    '.bmp': 'image/bmp',
+  };
+  
+  return mimeTypes[ext] || 'image/jpeg';
 }
 
 export class FileProcessingService {
