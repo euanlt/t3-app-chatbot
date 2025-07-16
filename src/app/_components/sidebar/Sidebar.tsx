@@ -27,7 +27,7 @@ import { formatDistanceToNow } from "~/utils/date";
 interface SidebarProps {
   selectedModel: string;
   onModelChange: (modelId: string) => void;
-  uploadedFiles: Array<{ id: string; name: string }>;
+  uploadedFiles: Array<{ id: string; name: string; status?: "pending" | "processing" | "completed" | "failed" }>;
   onFileUpload: (files: FileList) => void;
   onFileRemove: (fileId: string) => void;
   currentConversationId?: string;
@@ -403,9 +403,24 @@ export default function Sidebar({
                   >
                     <div className="flex min-w-0 flex-1 items-center gap-2">
                       <FaFileAlt className="text-secondary flex-shrink-0" />
-                      <span className="text-primary truncate text-sm">
-                        {file.name}
-                      </span>
+                      <div className="flex-1 min-w-0">
+                        <span className="text-primary truncate text-sm block">
+                          {file.name}
+                        </span>
+                        {file.status && (
+                          <span className={`text-xs ${
+                            file.status === "completed" ? "text-green-600" :
+                            file.status === "processing" ? "text-blue-600" :
+                            file.status === "failed" ? "text-red-600" :
+                            "text-gray-600"
+                          }`}>
+                            {file.status === "completed" ? "Ready" :
+                             file.status === "processing" ? "Processing..." :
+                             file.status === "failed" ? "Failed" :
+                             "Pending"}
+                          </span>
+                        )}
+                      </div>
                     </div>
                     <button
                       onClick={() => onFileRemove(file.id)}

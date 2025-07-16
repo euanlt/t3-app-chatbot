@@ -5,6 +5,7 @@ import { aiService } from "~/server/services/aiService";
 import { multiProviderAiService } from "~/server/services/multiProviderAiService";
 import { TRPCError } from "@trpc/server";
 import { db } from "~/server/db";
+import { fileProcessingService } from "~/server/services/fileProcessingService";
 
 const logger = createLogger("ChatRouter");
 
@@ -29,6 +30,7 @@ const chatSchema = z.object({
     .optional()
     .default([]),
   fileContext: z.string().optional().default(""),
+  fileIds: z.array(z.string()).optional().default([]),
   mcpContext: z.array(z.any()).optional().default([]),
 });
 
@@ -40,6 +42,7 @@ export const chatRouter = createTRPCRouter({
         model: input.model ?? "default",
         conversationId: input.conversationId,
         hasFileContext: !!input.fileContext,
+        fileCount: input.fileIds.length,
         hasMcpContext: input.mcpContext.length > 0,
       });
 
@@ -65,6 +68,23 @@ export const chatRouter = createTRPCRouter({
           content: input.message,
         },
       });
+
+      // Process uploaded files if any
+      let combinedFileContext = input.fileContext;
+      if (input.fileIds.length > 0) {
+        const fileContents = await Promise.all(
+          input.fileIds.map((fileId) => fileProcessingService.getFileContent(fileId))
+        );
+        
+        const validContents = fileContents.filter((content) => content !== null);
+        if (validContents.length > 0) {
+          if (combinedFileContext) {
+            combinedFileContext = combinedFileContext + "\n\n" + validContents.join("\n\n");
+          } else {
+            combinedFileContext = validContents.join("\n\n");
+          }
+        }
+      }
 
       // Log the model being used
       const modelToUse =
@@ -109,7 +129,7 @@ export const chatRouter = createTRPCRouter({
           },
           input.message,
           input.chatHistory,
-          input.fileContext,
+          combinedFileContext,
           input.mcpContext,
           input.userId,
         );
@@ -119,7 +139,7 @@ export const chatRouter = createTRPCRouter({
           modelToUse,
           input.message,
           input.chatHistory,
-          input.fileContext,
+          combinedFileContext,
           input.mcpContext,
         );
       }

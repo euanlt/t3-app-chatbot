@@ -20,6 +20,7 @@ model User {
   conversations Conversation[]
   customModels  CustomModel[]
   apiKeys       UserApiKey[]
+  files         File[]
 }
 
 // Conversation model to group messages
@@ -81,5 +82,25 @@ model UserApiKey {
   @@unique([userId, provider, keyName])
   @@index([userId])
   @@index([provider])
+}
+
+// File model for uploaded documents
+model File {
+  id            String   @id @default(cuid())
+  userId        String?
+  user          User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  filename      String   // Stored filename
+  originalName  String   // Original filename from user
+  mimetype      String
+  size          Int
+  path          String?  // File storage path
+  extractedText String?  // Extracted text content
+  status        String   @default("pending") // pending, processing, completed, failed
+  error         String?  // Error message if processing failed
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([userId])
+  @@index([status])
 }
 

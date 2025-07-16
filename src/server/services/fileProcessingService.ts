@@ -1,0 +1,298 @@
+import fs from "fs/promises";
+import path from "path";
+import { createLogger } from "./logger";
+import { db } from "~/server/db";
+import type { File } from "@prisma/client";
+import { env } from "~/env";
+import mammoth from "mammoth";
+import pdf from "pdf-parse/lib/pdf-parse.js";
+
+const logger = createLogger("FileProcessingService");
+
+// Get upload directory from env or use default
+const UPLOAD_DIR = env.UPLOAD_DIR || "./uploads";
+const MAX_FILE_SIZE = parseInt(env.MAX_FILE_SIZE || "10485760"); // 10MB default
+
+// Supported file types and their processors
+const FILE_PROCESSORS: Record<string, (filePath: string) => Promise<string>> = {
+  // Text files
+  "text/plain": readTextFile,
+  "text/markdown": readTextFile,
+  "text/csv": readTextFile,
+  "application/json": readTextFile,
+  "text/javascript": readTextFile,
+  "text/typescript": readTextFile,
+  "text/html": readTextFile,
+  "text/css": readTextFile,
+  
+  // Documents
+  "application/pdf": extractPdfText,
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document": extractDocxText,
+  
+  // Add more processors as needed
+};
+
+export interface FileUploadResult {
+  file: File;
+  success: boolean;
+  error?: string;
+}
+
+async function readTextFile(filePath: string): Promise<string> {
+  return await fs.readFile(filePath, "utf-8");
+}
+
+async function extractPdfText(filePath: string): Promise<string> {
+  try {
+    const dataBuffer = await fs.readFile(filePath);
+    const data = await pdf(dataBuffer);
+    return data.text;
+  } catch (error) {
+    logger.error("Failed to extract PDF text", { filePath, error });
+    throw new Error("Failed to extract text from PDF");
+  }
+}
+
+async function extractDocxText(filePath: string): Promise<string> {
+  try {
+    const result = await mammoth.extractRawText({ path: filePath });
+    return result.value;
+  } catch (error) {
+    logger.error("Failed to extract DOCX text", { filePath, error });
+    throw new Error("Failed to extract text from DOCX");
+  }
+}
+
+export class FileProcessingService {
+  private uploadDir: string;
+
+  constructor() {
+    this.uploadDir = path.resolve(UPLOAD_DIR);
+    this.ensureUploadDirectory();
+  }
+
+  private async ensureUploadDirectory() {
+    try {
+      await fs.access(this.uploadDir);
+    } catch {
+      await fs.mkdir(this.uploadDir, { recursive: true });
+      logger.info("Created upload directory", { path: this.uploadDir });
+    }
+  }
+
+  /**
+   * Save uploaded file and create database record
+   */
+  async saveFile(
+    buffer: Buffer,
+    originalName: string,
+    mimetype: string,
+    userId?: string
+  ): Promise<FileUploadResult> {
+    try {
+      // Validate file size
+      if (buffer.length > MAX_FILE_SIZE) {
+        throw new Error(`File size exceeds maximum allowed size of ${MAX_FILE_SIZE} bytes`);
+      }
+
+      // Generate unique filename
+      const fileId = this.generateFileId();
+      const extension = path.extname(originalName);
+      const filename = `${fileId}${extension}`;
+      const filePath = path.join(this.uploadDir, filename);
+
+      // Save file to disk
+      await fs.writeFile(filePath, buffer);
+      logger.info("File saved to disk", { filename, size: buffer.length });
+
+      // Create database record
+      const file = await db.file.create({
+        data: {
+          filename,
+          originalName,
+          mimetype,
+          size: buffer.length,
+          path: filePath,
+          status: "pending",
+          userId,
+        },
+      });
+
+      // Process file asynchronously
+      this.processFile(file.id).catch((error) => {
+        logger.error("Failed to process file", { fileId: file.id, error });
+      });
+
+      return { file, success: true };
+    } catch (error) {
+      logger.error("Failed to save file", { originalName, error });
+      return {
+        file: null as any,
+        success: false,
+        error: error instanceof Error ? error.message : "Failed to save file",
+      };
+    }
+  }
+
+  /**
+   * Process file to extract text content
+   */
+  async processFile(fileId: string): Promise<void> {
+    try {
+      // Get file from database
+      const file = await db.file.findUnique({ where: { id: fileId } });
+      if (!file) {
+        throw new Error("File not found");
+      }
+
+      // Update status to processing
+      await db.file.update({
+        where: { id: fileId },
+        data: { status: "processing" },
+      });
+
+      // Check if we have a processor for this file type
+      const processor = FILE_PROCESSORS[file.mimetype];
+      if (!processor) {
+        logger.info("No text processor for file type", { mimetype: file.mimetype });
+        await db.file.update({
+          where: { id: fileId },
+          data: { 
+            status: "completed",
+            extractedText: null,
+          },
+        });
+        return;
+      }
+
+      // Extract text
+      const extractedText = await processor(file.path!);
+      logger.info("Text extracted from file", { 
+        fileId, 
+        textLength: extractedText.length 
+      });
+
+      // Update database with extracted text
+      await db.file.update({
+        where: { id: fileId },
+        data: {
+          status: "completed",
+          extractedText,
+        },
+      });
+    } catch (error) {
+      logger.error("Failed to process file", { fileId, error });
+      
+      // Update database with error
+      await db.file.update({
+        where: { id: fileId },
+        data: {
+          status: "failed",
+          error: error instanceof Error ? error.message : "Processing failed",
+        },
+      });
+    }
+  }
+
+  /**
+   * Get file content for chat context
+   */
+  async getFileContent(fileId: string): Promise<string | null> {
+    try {
+      const file = await db.file.findUnique({
+        where: { id: fileId },
+        select: { extractedText: true, status: true, originalName: true },
+      });
+
+      if (!file) {
+        logger.warn("File not found", { fileId });
+        return null;
+      }
+
+      if (file.status === "completed" && file.extractedText) {
+        return `File: ${file.originalName}\n\n${file.extractedText}`;
+      }
+
+      if (file.status === "processing") {
+        return `File: ${file.originalName} (still processing...)`;
+      }
+
+      return null;
+    } catch (error) {
+      logger.error("Failed to get file content", { fileId, error });
+      return null;
+    }
+  }
+
+  /**
+   * Delete file from disk and database
+   */
+  async deleteFile(fileId: string): Promise<boolean> {
+    try {
+      const file = await db.file.findUnique({
+        where: { id: fileId },
+        select: { path: true },
+      });
+
+      if (!file) {
+        return false;
+      }
+
+      // Delete from disk
+      if (file.path) {
+        try {
+          await fs.unlink(file.path);
+          logger.info("File deleted from disk", { path: file.path });
+        } catch (error) {
+          logger.error("Failed to delete file from disk", { path: file.path, error });
+        }
+      }
+
+      // Delete from database
+      await db.file.delete({ where: { id: fileId } });
+      logger.info("File deleted from database", { fileId });
+
+      return true;
+    } catch (error) {
+      logger.error("Failed to delete file", { fileId, error });
+      return false;
+    }
+  }
+
+  /**
+   * Clean up old files
+   */
+  async cleanupOldFiles(daysOld = 7): Promise<number> {
+    try {
+      const cutoffDate = new Date();
+      cutoffDate.setDate(cutoffDate.getDate() - daysOld);
+
+      const oldFiles = await db.file.findMany({
+        where: {
+          createdAt: { lt: cutoffDate },
+        },
+        select: { id: true, path: true },
+      });
+
+      let deletedCount = 0;
+      for (const file of oldFiles) {
+        if (await this.deleteFile(file.id)) {
+          deletedCount++;
+        }
+      }
+
+      logger.info("Cleaned up old files", { count: deletedCount, daysOld });
+      return deletedCount;
+    } catch (error) {
+      logger.error("Failed to cleanup old files", { error });
+      return 0;
+    }
+  }
+
+  private generateFileId(): string {
+    return Date.now().toString(36) + Math.random().toString(36).substring(2);
+  }
+}
+
+// Export singleton instance
+export const fileProcessingService = new FileProcessingService();

@@ -118,9 +118,8 @@ export default function ChatWindow({
       };
       setMessages((prev) => [...prev, userMessage]);
 
-      // Prepare file context
-      const fileContext =
-        uploadedFiles?.map((f) => f.content ?? "").join("\n\n") ?? "";
+      // Prepare file IDs
+      const fileIds = uploadedFiles?.map((f) => f.id) ?? [];
 
       // Send message via tRPC
       sendMessage.mutate({
@@ -134,7 +133,7 @@ export default function ChatWindow({
           timestamp: m.timestamp,
           model: m.model,
         })),
-        fileContext,
+        fileIds,
       });
 
       setInputValue("");
