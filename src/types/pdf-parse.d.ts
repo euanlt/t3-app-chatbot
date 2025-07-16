@@ -12,8 +12,8 @@ declare module "pdf-parse/lib/pdf-parse.js" {
   }
 
   export interface PDFMetadata {
-    _metadata?: any;
-    metadata?: any;
+    _metadata?: Record<string, unknown>;
+    metadata?: Record<string, unknown>;
   }
 
   export interface PDFData {

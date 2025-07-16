@@ -152,21 +152,28 @@ export default function ChatWindow({
   };
 
   // Helper function to extract code content from pre element children
-  const extractCodeContent = (children: any): string | null => {
+  const extractCodeContent = (children: React.ReactNode): string | null => {
     if (!children) return null;
     
     // Handle different structures that ReactMarkdown might produce
     if (typeof children === 'string') return children;
     
     if (Array.isArray(children)) {
-      const codeElement = children.find(child => child?.props?.children);
-      if (codeElement?.props?.children) {
-        return extractCodeContent(codeElement.props.children);
+      for (const child of children) {
+        if (child && typeof child === 'object' && 'props' in child) {
+          const childProps = child.props as { children?: React.ReactNode };
+          if (childProps?.children) {
+            return extractCodeContent(childProps.children);
+          }
+        }
       }
     }
     
-    if (children?.props?.children) {
-      return extractCodeContent(children.props.children);
+    if (children && typeof children === 'object' && 'props' in children) {
+      const childProps = (children as { props?: { children?: React.ReactNode } }).props;
+      if (childProps?.children) {
+        return extractCodeContent(childProps.children);
+      }
     }
     
     return null;

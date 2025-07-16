@@ -206,7 +206,7 @@ export class FileProcessingService {
     } catch (error) {
       logger.error("Failed to save file", { originalName, error });
       return {
-        file: null as any,
+        file: {} as File,
         success: false,
         error: error instanceof Error ? error.message : "Failed to save file",
       };
