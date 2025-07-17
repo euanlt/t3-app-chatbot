@@ -147,8 +147,8 @@ export default function Sidebar({
         {!isCollapsed ? (
           <>
             <h2 className="text-primary flex items-center gap-2 text-xl font-semibold">
-              <FaRobot className="text-blue-600" />
-              AI Chatbot
+              <img src="/yno-logo.png" alt="YNO Logo" className="h-6 w-6" />
+              YNO
             </h2>
             <div className="flex items-center gap-2">
               <ThemeToggle />
