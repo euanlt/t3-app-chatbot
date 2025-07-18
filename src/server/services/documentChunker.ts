@@ -155,7 +155,10 @@ export class DocumentChunker {
       
       // Add content before this header to previous section
       if (index > 0 && sections.length > 0) {
-        sections[sections.length - 1].content += text.substring(lastIndex, nextIndex);
+        const lastSection = sections[sections.length - 1];
+        if (lastSection) {
+          lastSection.content += text.substring(lastIndex, nextIndex);
+        }
       } else if (index === 0 && nextIndex > 0) {
         // Content before first header
         sections.push({
@@ -175,7 +178,10 @@ export class DocumentChunker {
 
     // Add remaining content to last section
     if (lastIndex < text.length && sections.length > 0) {
-      sections[sections.length - 1].content = text.substring(lastIndex).trim();
+      const lastSection = sections[sections.length - 1];
+      if (lastSection) {
+        lastSection.content = text.substring(lastIndex).trim();
+      }
     }
 
     return sections.filter(s => s.content.trim().length > 0);
