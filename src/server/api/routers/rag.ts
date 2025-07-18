@@ -42,7 +42,7 @@ export const ragRouter = createTRPCRouter({
           query: input.query,
         };
       } catch (error) {
-        logger.error("RAG search failed", error);
+        logger.error("RAG search failed", error instanceof Error ? error : { error });
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message: "Failed to perform search",
@@ -70,7 +70,7 @@ export const ragRouter = createTRPCRouter({
           fileId: input.fileId,
         };
       } catch (error) {
-        logger.error("Failed to process file for RAG", error);
+        logger.error("Failed to process file for RAG", error instanceof Error ? error : { error });
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message: error instanceof Error ? error.message : "Failed to process file",
@@ -110,7 +110,7 @@ export const ragRouter = createTRPCRouter({
 
         return status;
       } catch (error) {
-        logger.error("Failed to get file status", error);
+        logger.error("Failed to get file status", error instanceof Error ? error : { error });
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message: "Failed to get file status",

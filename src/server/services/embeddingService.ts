@@ -33,7 +33,7 @@ export class EmbeddingService {
 
       return response.data[0]?.embedding ?? null;
     } catch (error) {
-      logger.error("Failed to generate embedding:", error);
+      logger.error("Failed to generate embedding:", error instanceof Error ? error : { error });
       return null;
     }
   }
@@ -67,7 +67,7 @@ export class EmbeddingService {
 
       return results;
     } catch (error) {
-      logger.error("Failed to generate embeddings batch:", error);
+      logger.error("Failed to generate embeddings batch:", error instanceof Error ? error : { error });
       return texts.map(() => null);
     }
   }

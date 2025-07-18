@@ -79,7 +79,7 @@ export class RAGService {
 
       logger.info(`Processed file ${fileId} with ${chunks.length} chunks`);
     } catch (error) {
-      logger.error(`Failed to process file ${fileId}:`, error);
+      logger.error(`Failed to process file ${fileId}:`, error instanceof Error ? error : { error });
       
       // Update file status to failed
       await this.db.file.update({
@@ -162,7 +162,7 @@ export class RAGService {
 
       return results;
     } catch (error) {
-      logger.error("RAG search failed:", error);
+      logger.error("RAG search failed:", error instanceof Error ? error : { error });
       return [];
     }
   }
@@ -218,7 +218,7 @@ export class RAGService {
 
       return `Based on the following relevant information from your documents:\n\n${context}\n\n`;
     } catch (error) {
-      logger.error("Failed to get RAG context:", error);
+      logger.error("Failed to get RAG context:", error instanceof Error ? error : { error });
       return "";
     }
   }
