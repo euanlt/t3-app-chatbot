@@ -3,6 +3,7 @@ import { createTRPCRouter, publicProcedure } from "~/server/api/trpc";
 import { ragService } from "~/server/services/ragService";
 import { createLogger } from "~/server/services/logger";
 import { TRPCError } from "@trpc/server";
+import { db } from "~/server/db";
 
 const logger = createLogger("RAGRouter");
 
@@ -87,9 +88,9 @@ export const ragRouter = createTRPCRouter({
         fileIds: z.array(z.string()),
       })
     )
-    .query(async ({ ctx, input }) => {
+    .query(async ({ input }) => {
       try {
-        const embeddings = await ctx.db.documentEmbedding.groupBy({
+        const embeddings = await db.documentEmbedding.groupBy({
           by: ["fileId"],
           where: {
             fileId: { in: input.fileIds },
