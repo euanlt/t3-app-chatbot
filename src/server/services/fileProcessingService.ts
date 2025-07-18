@@ -230,21 +230,14 @@ export class FileProcessingService {
           throw error;
         }
 
-        // Get the public URL for the file
-        const { data: urlData } = supabase.storage
-          .from(STORAGE_BUCKET)
-          .getPublicUrl(storagePath);
-          
-        storageUrl = urlData.publicUrl;
         logger.info("File saved to Supabase Storage", { 
           filename, 
           size: buffer.length,
           path: storagePath,
-          url: storageUrl,
         });
         
-        // Set filePath to the Supabase path for consistency
-        filePath = storageUrl;
+        // Store the storage path, not the public URL (since bucket is private)
+        filePath = storagePath;
       } else {
         logger.error("No storage backend available", {
           supabaseConfigured: !!supabase,
@@ -316,13 +309,23 @@ export class FileProcessingService {
 
       // Get file content based on storage type
       let fileBuffer: Buffer;
-      if (file.path?.startsWith('http')) {
-        // File is in Supabase Storage - download it
-        const response = await fetch(file.path);
-        if (!response.ok) {
-          throw new Error(`Failed to download file from storage: ${response.statusText}`);
+      if (!file.path?.startsWith('/') && supabase) {
+        // File is in Supabase Storage - download it using the storage path
+        logger.info("Downloading file from Supabase", { path: file.path });
+        
+        const { data, error } = await supabase.storage
+          .from(STORAGE_BUCKET)
+          .download(file.path!);
+          
+        if (error || !data) {
+          logger.error("Failed to download from Supabase", { 
+            error: error?.message || "No data returned",
+            path: file.path 
+          });
+          throw new Error(`Failed to download file from storage: ${error?.message || "Unknown error"}`);
         }
-        fileBuffer = Buffer.from(await response.arrayBuffer());
+        
+        fileBuffer = Buffer.from(await data.arrayBuffer());
         
         // Create a temporary file for processors that need file paths
         const tempDir = process.env.NODE_ENV === 'production' ? '/tmp' : UPLOAD_DIR;
@@ -455,24 +458,17 @@ export class FileProcessingService {
 
       // Delete from storage
       if (file.path) {
-        if (file.path.startsWith('http') && supabase) {
-          // File is in Supabase Storage
+        if (!file.path.startsWith('/') && supabase) {
+          // File is in Supabase Storage - path is the storage path
           try {
-            // Extract the storage path from the URL
-            const urlParts = file.path.split('/');
-            const storagePathIndex = urlParts.findIndex(part => part === STORAGE_BUCKET);
-            if (storagePathIndex !== -1) {
-              const storagePath = urlParts.slice(storagePathIndex + 1).join('/');
+            const { error } = await supabase.storage
+              .from(STORAGE_BUCKET)
+              .remove([file.path]);
               
-              const { error } = await supabase.storage
-                .from(STORAGE_BUCKET)
-                .remove([storagePath]);
-                
-              if (error) {
-                logger.error("Failed to delete file from Supabase", { path: storagePath, error });
-              } else {
-                logger.info("File deleted from Supabase", { path: storagePath });
-              }
+            if (error) {
+              logger.error("Failed to delete file from Supabase", { path: file.path, error });
+            } else {
+              logger.info("File deleted from Supabase", { path: file.path });
             }
           } catch (error) {
             logger.error("Failed to delete file from storage", { path: file.path, error: error instanceof Error ? error : { error } });
