@@ -196,7 +196,6 @@ export class FileProcessingService {
       const filename = `${fileId}${extension}`;
       
       let filePath: string;
-      let storageUrl: string | null = null;
 
       if (this.useLocalStorage) {
         // Local storage for development
