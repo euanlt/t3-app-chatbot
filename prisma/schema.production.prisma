@@ -74,7 +74,7 @@ model UserApiKey {
   user      User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
   provider  String   // "openai", "gemini", "claude", "openrouter"
   keyName   String   // Display name for the key
-  encryptedKey String       @db.Text // Encrypted API key
+  encryptedKey String @db.Text // Encrypted API key
   isActive  Boolean  @default(true)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -94,13 +94,12 @@ model File {
   mimetype      String
   size          Int
   path          String?  // File storage path
-  extractedText String?      @db.Text // Extracted text content
+  extractedText String?  @db.Text // Extracted text content
   status        String   @default("pending") // pending, processing, completed, failed
-  error         String?      @db.Text // Error message if processing failed
+  error         String?  @db.Text // Error message if processing failed
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
   @@index([userId])
   @@index([status])
 }
-
