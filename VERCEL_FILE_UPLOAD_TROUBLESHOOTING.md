@@ -3,15 +3,16 @@
 ## Current Issue
 File uploads are failing on Vercel with error in `files.getFileProcessingStatus`.
 
-### Specific Error Found
-From the logs:
-- **Error 429**: "You exceeded your current quota, please check your plan and billing details"
-- This happens when trying to generate embeddings using OpenAI API
+### Update: Now Using FREE Gemini Embeddings!
+The app now uses Google Gemini for embeddings instead of OpenAI:
+- **FREE tier**: 1,500 requests per day
+- **No billing required**
+- **Good quality embeddings**
 
-## Root Causes
+## Root Causes (if file upload still fails)
 
-1. **OpenAI API quota exceeded** - The app needs OpenAI API for RAG embeddings
-2. **Missing environment variables** - Supabase and OpenAI credentials not configured
+1. **Missing GOOGLE_API_KEY** - Required for RAG embeddings
+2. **Missing Supabase credentials** - Required for file storage
 
 ## Solution Steps
 
@@ -27,8 +28,8 @@ From the logs:
 SUPABASE_URL=https://your-project-ref.supabase.co
 SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
 
-# For RAG embeddings (REQUIRED!)
-OPENAI_API_KEY=sk-...your-openai-key
+# For RAG embeddings (REQUIRED! But FREE!)
+GOOGLE_API_KEY=AIza...your-google-key
 
 # Your database connection
 DATABASE_URL=postgresql://...your-database-url
@@ -44,11 +45,12 @@ DATABASE_URL=postgresql://...your-database-url
   - **Project URL** → `SUPABASE_URL`
   - **Service Role Key** (under "Service role - secret") → `SUPABASE_SERVICE_ROLE_KEY`
 
-**OpenAI API Key:**
-- Go to [OpenAI Platform](https://platform.openai.com/api-keys)
-- Create a new API key or use existing one
-- **IMPORTANT**: Check your [usage limits](https://platform.openai.com/account/limits)
-- Make sure you have available quota
+**Google API Key:**
+- Go to [Google Cloud Console](https://console.cloud.google.com/)
+- Create a new project or select existing
+- Enable "Generative Language API"
+- Create an API key
+- **FREE**: 1,500 requests per day!
 
 ### 2. Redeploy
 
@@ -77,11 +79,10 @@ vercel logs <deployment-url>
 
 ### Common Issues
 
-1. **"429 You exceeded your current quota"**
-   - Your OpenAI account has hit its usage limit
-   - Check your [OpenAI usage](https://platform.openai.com/usage)
-   - Add billing/credits to your OpenAI account
-   - Or use a different API key with available quota
+1. **"429 quota exceeded"** (Very rare with Gemini)
+   - You've hit the 1,500/day free limit
+   - Wait until tomorrow (resets daily)
+   - Or create another Google Cloud project for more quota
 
 2. **"No storage backend available"**
    - Supabase environment variables are missing or incorrect

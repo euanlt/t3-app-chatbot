@@ -3,7 +3,7 @@
 ## Prerequisites
 
 1. **Environment Variables** (must be set in Vercel or local .env):
-   - `OPENAI_API_KEY` - Required for embeddings (check quota at https://platform.openai.com/usage)
+   - `GOOGLE_API_KEY` - Required for embeddings (FREE - 1,500 requests/day)
    - `SUPABASE_URL` - For file storage
    - `SUPABASE_SERVICE_ROLE_KEY` - For file storage
    - `DATABASE_URL` - PostgreSQL with pgvector extension
@@ -42,7 +42,7 @@ The file goes through these stages:
 1. **Upload** → Saved to Supabase Storage
 2. **Text Extraction** → Content extracted based on file type
 3. **Chunking** → Text split into ~1000 character chunks
-4. **Embedding** → Each chunk gets a vector embedding
+4. **Embedding** → Each chunk gets a vector embedding (768 dimensions via Gemini)
 5. **Storage** → Embeddings saved to database
 
 ### 4. Test RAG Queries
@@ -74,9 +74,10 @@ If files fail to process, check:
    ```
 
 2. **Common Issues**:
-   - **"429 quota exceeded"** → OpenAI API limit reached
+   - **"429 quota exceeded"** → Very rare with Gemini (1,500/day free limit)
    - **"No storage backend"** → Supabase not configured
    - **"Failed to download"** → Storage access issue
+   - **"Google API key not configured"** → Missing GOOGLE_API_KEY
 
 ### Database Verification
 
@@ -106,11 +107,11 @@ Important Information:
 - YNO is an AI-powered chatbot
 - It supports RAG functionality
 - Users can upload documents
-- The system uses OpenAI embeddings
+- The system uses Gemini embeddings
 
 Technical Details:
-- Embedding model: text-embedding-3-small
-- Vector dimensions: 1536
+- Embedding model: Gemini text-embedding-004
+- Vector dimensions: 768
 - Chunk size: 1000 characters
 - Overlap: 200 characters
 ```
@@ -126,8 +127,8 @@ If the AI correctly answers these questions using the document content, RAG is w
 
 1. **Smaller files process faster** - Start with files under 1MB
 2. **Text/PDF work best** - These have the most reliable text extraction
-3. **Monitor OpenAI usage** - Each chunk creates one embedding API call
-4. **Check quotas** - Both OpenAI and Supabase have limits
+3. **Free tier is generous** - 1,500 embedding requests per day with Gemini
+4. **Check Supabase quotas** - Storage has limits on free tier
 
 ## Expected Behavior
 

@@ -1,37 +1,47 @@
-import OpenAI from "openai";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 import { env } from "~/env";
 import { createLogger } from "~/server/services/logger";
 
 const logger = createLogger("EmbeddingService");
 
 export class EmbeddingService {
-  private openai: OpenAI | null = null;
+  private genAI: GoogleGenerativeAI | null = null;
 
   constructor() {
-    if (env.OPENAI_API_KEY) {
-      this.openai = new OpenAI({
-        apiKey: env.OPENAI_API_KEY,
-      });
+    if (env.GOOGLE_API_KEY) {
+      this.genAI = new GoogleGenerativeAI(env.GOOGLE_API_KEY);
     }
   }
 
   /**
-   * Generate embeddings for text using OpenAI's embedding model
+   * Generate embeddings for text using Google's embedding model
    */
   async generateEmbedding(text: string): Promise<number[] | null> {
-    if (!this.openai) {
-      logger.warn("OpenAI API key not configured for embeddings");
+    if (!this.genAI) {
+      logger.warn("Google API key not configured for embeddings");
       return null;
     }
 
     try {
-      const response = await this.openai.embeddings.create({
-        model: "text-embedding-3-small", // Cheaper and faster than ada-002
-        input: text,
-        dimensions: 1536, // Standard dimension size
+      const model = this.genAI.getGenerativeModel({ model: "text-embedding-004" });
+      
+      const result = await model.embedContent({
+        content: { parts: [{ text }] },
+        taskType: "RETRIEVAL_DOCUMENT",
       });
 
-      return response.data[0]?.embedding ?? null;
+      const embedding = result.embedding.values;
+      if (!embedding || embedding.length === 0) {
+        logger.error("No embedding returned from Gemini");
+        return null;
+      }
+
+      logger.debug("Generated embedding", { 
+        dimensions: embedding.length,
+        textLength: text.length 
+      });
+
+      return embedding;
     } catch (error) {
       logger.error("Failed to generate embedding:", error instanceof Error ? error : { error });
       return null;
@@ -42,28 +52,46 @@ export class EmbeddingService {
    * Generate embeddings for multiple texts in batch
    */
   async generateEmbeddings(texts: string[]): Promise<(number[] | null)[]> {
-    if (!this.openai) {
-      logger.warn("OpenAI API key not configured for embeddings");
+    if (!this.genAI) {
+      logger.warn("Google API key not configured for embeddings");
       return texts.map(() => null);
     }
 
     try {
-      // OpenAI allows up to 2048 embeddings per request
-      const batchSize = 100;
+      const model = this.genAI.getGenerativeModel({ model: "text-embedding-004" });
+      
+      // Process in smaller batches to avoid rate limits
+      const batchSize = 10; // Gemini has lower rate limits than OpenAI
       const results: (number[] | null)[] = [];
 
       for (let i = 0; i < texts.length; i += batchSize) {
         const batch = texts.slice(i, i + batchSize);
-        const response = await this.openai.embeddings.create({
-          model: "text-embedding-3-small",
-          input: batch,
-          dimensions: 1536,
-        });
-
-        results.push(
-          ...response.data.map((item) => item.embedding as number[])
+        
+        // Process batch in parallel
+        const batchPromises = batch.map(text => 
+          model.embedContent({
+            content: { parts: [{ text }] },
+            taskType: "RETRIEVAL_DOCUMENT",
+          }).then(result => result.embedding.values)
+            .catch(error => {
+              logger.error("Failed to generate embedding for text:", error);
+              return null;
+            })
         );
+
+        const batchResults = await Promise.all(batchPromises);
+        results.push(...batchResults);
+
+        // Add small delay to respect rate limits
+        if (i + batchSize < texts.length) {
+          await new Promise(resolve => setTimeout(resolve, 100));
+        }
       }
+
+      logger.info("Generated embeddings batch", { 
+        total: texts.length, 
+        successful: results.filter(r => r !== null).length 
+      });
 
       return results;
     } catch (error) {
@@ -76,7 +104,15 @@ export class EmbeddingService {
    * Check if embedding service is available
    */
   isAvailable(): boolean {
-    return this.openai !== null;
+    return this.genAI !== null;
+  }
+
+  /**
+   * Get embedding dimensions for the current model
+   */
+  getEmbeddingDimensions(): number {
+    // Gemini text-embedding-004 produces 768-dimensional embeddings
+    return 768;
   }
 }
 

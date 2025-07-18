@@ -82,9 +82,10 @@ RAG should find this because "artificial intelligence" and "machine learning" ar
 
 ### 6. Monitor API Calls
 
-Check your OpenAI usage dashboard:
+Check your Google Cloud Console or API usage:
 - File upload should create multiple embedding API calls (one per chunk)
 - Each question should create 1 embedding API call for the query
+- FREE limit: 1,500 requests per day
 
 ## Quick Verification Commands
 
@@ -110,9 +111,9 @@ GROUP BY f.id, f.original_name;
 
 ## The Smoking Gun Test
 
-1. **Disable RAG temporarily** by setting a wrong OpenAI API key
+1. **Disable RAG temporarily** by removing/renaming GOOGLE_API_KEY
 2. Upload a file - it should still upload but show in chat as plain text
-3. **Re-enable RAG** with correct API key
+3. **Re-enable RAG** with correct GOOGLE_API_KEY
 4. Upload the same file - now questions should return specific relevant chunks
 
 ## What Success Looks Like
@@ -122,7 +123,7 @@ When RAG is working properly:
 - ✅ Only relevant portions appear in responses (not entire file)
 - ✅ Can find information using synonyms/related terms
 - ✅ Large files work without hitting token limits
-- ✅ OpenAI API usage shows embedding calls
+- ✅ Gemini API is being used for embeddings (check logs)
 - ✅ Responses are contextually relevant to the question
 
 ## Common False Positives
