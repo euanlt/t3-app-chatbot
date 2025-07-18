@@ -1,8 +1,10 @@
 import { type PrismaClient } from "@prisma/client";
 import { embeddingService } from "./embeddingService";
 import { documentChunker, type DocumentChunk } from "./documentChunker";
-import { logger } from "~/utils/logger";
+import { createLogger } from "~/server/services/logger";
 import { db } from "~/server/db";
+
+const logger = createLogger("RAGService");
 
 export interface RAGSearchResult {
   content: string;

@@ -1,0 +1,26 @@
+YNO Company Information
+
+Founded: 2024
+CEO: Sarah Johnson
+Headquarters: San Francisco, CA
+
+Products:
+- YNO Chat: AI-powered customer service chatbot
+- YNO Analytics: Real-time conversation analytics
+- YNO Voice: Voice-enabled AI assistant
+
+Key Features:
+- RAG (Retrieval-Augmented Generation) for accurate responses
+- Multi-language support in 25 languages
+- 99.9% uptime guarantee
+- SOC 2 Type II certified
+
+Pricing:
+- Starter: $99/month (up to 1,000 conversations)
+- Professional: $299/month (up to 10,000 conversations)
+- Enterprise: Custom pricing
+
+Support:
+- Email: support@yno.ai
+- Phone: 1-800-YNO-CHAT
+- Live chat: Available 24/7

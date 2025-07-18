@@ -1,6 +1,8 @@
 import OpenAI from "openai";
 import { env } from "~/env";
-import { logger } from "~/utils/logger";
+import { createLogger } from "~/server/services/logger";
+
+const logger = createLogger("EmbeddingService");
 
 export class EmbeddingService {
   private openai: OpenAI | null = null;
