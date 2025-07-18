@@ -26,7 +26,10 @@ export class EmbeddingService {
       const model = this.genAI.getGenerativeModel({ model: "text-embedding-004" });
       
       const result = await model.embedContent({
-        content: { parts: [{ text }] },
+        content: { 
+          role: "user",
+          parts: [{ text }] 
+        },
         taskType: "RETRIEVAL_DOCUMENT",
       });
 
@@ -70,7 +73,10 @@ export class EmbeddingService {
         // Process batch in parallel
         const batchPromises = batch.map(text => 
           model.embedContent({
-            content: { parts: [{ text }] },
+            content: { 
+              role: "user",
+              parts: [{ text }] 
+            },
             taskType: "RETRIEVAL_DOCUMENT",
           }).then(result => result.embedding.values)
             .catch(error => {
