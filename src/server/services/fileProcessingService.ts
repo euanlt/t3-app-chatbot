@@ -200,7 +200,7 @@ export class FileProcessingService {
         // Supabase storage for production
         const storagePath = `uploads/${userId || 'anonymous'}/${filename}`;
         
-        const { data, error } = await supabase.storage
+        const { error } = await supabase.storage
           .from(STORAGE_BUCKET)
           .upload(storagePath, buffer, {
             contentType: mimetype,

@@ -24,7 +24,6 @@ export const env = createEnv({
     ENCRYPTION_KEY: z.string().optional().default("default-key-change-in-production"),
     SUPABASE_URL: z.string().optional(),
     SUPABASE_SERVICE_ROLE_KEY: z.string().optional(),
-    NEXT_PUBLIC_SUPABASE_URL: z.string().optional(),
   },
 
   /**
@@ -33,7 +32,7 @@ export const env = createEnv({
    * `NEXT_PUBLIC_`.
    */
   client: {
-    // NEXT_PUBLIC_CLIENTVAR: z.string(),
+    NEXT_PUBLIC_SUPABASE_URL: z.string().optional(),
   },
 
   /**
