@@ -3,30 +3,52 @@
 ## Current Issue
 File uploads are failing on Vercel with error in `files.getFileProcessingStatus`.
 
-## Most Likely Cause
-The Supabase environment variables are not configured in Vercel.
+### Specific Error Found
+From the logs:
+- **Error 429**: "You exceeded your current quota, please check your plan and billing details"
+- This happens when trying to generate embeddings using OpenAI API
+
+## Root Causes
+
+1. **OpenAI API quota exceeded** - The app needs OpenAI API for RAG embeddings
+2. **Missing environment variables** - Supabase and OpenAI credentials not configured
 
 ## Solution Steps
 
-### 1. Add Environment Variables to Vercel
+### 1. Add ALL Required Environment Variables to Vercel
 
 1. Go to your [Vercel Dashboard](https://vercel.com/dashboard)
 2. Select your `t3-app-chatbot` project
 3. Go to **Settings** → **Environment Variables**
-4. Add these two variables:
+4. Add these variables:
 
 ```
+# For file storage
 SUPABASE_URL=https://your-project-ref.supabase.co
 SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
+
+# For RAG embeddings (REQUIRED!)
+OPENAI_API_KEY=sk-...your-openai-key
+
+# Your database connection
+DATABASE_URL=postgresql://...your-database-url
 ```
 
-You can find these values in your Supabase project:
+#### Getting the values:
+
+**Supabase credentials:**
 - Go to [Supabase Dashboard](https://app.supabase.com)
 - Select your project
 - Go to **Settings** → **API**
 - Copy:
   - **Project URL** → `SUPABASE_URL`
   - **Service Role Key** (under "Service role - secret") → `SUPABASE_SERVICE_ROLE_KEY`
+
+**OpenAI API Key:**
+- Go to [OpenAI Platform](https://platform.openai.com/api-keys)
+- Create a new API key or use existing one
+- **IMPORTANT**: Check your [usage limits](https://platform.openai.com/account/limits)
+- Make sure you have available quota
 
 ### 2. Redeploy
 
@@ -55,14 +77,20 @@ vercel logs <deployment-url>
 
 ### Common Issues
 
-1. **"No storage backend available"**
+1. **"429 You exceeded your current quota"**
+   - Your OpenAI account has hit its usage limit
+   - Check your [OpenAI usage](https://platform.openai.com/usage)
+   - Add billing/credits to your OpenAI account
+   - Or use a different API key with available quota
+
+2. **"No storage backend available"**
    - Supabase environment variables are missing or incorrect
    
-2. **"Failed to upload file"**
+3. **"Failed to upload file"**
    - Check that both `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` are set
    - Verify the values are correct (no extra spaces or quotes)
    
-3. **"Storage bucket not found"**
+4. **"Storage bucket not found"**
    - The bucket will be created automatically on first upload
    - If it fails, check Supabase Storage permissions
 

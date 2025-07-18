@@ -362,12 +362,24 @@ export class FileProcessingService {
     } catch (error) {
       logger.error("Failed to process file", { fileId, error });
       
+      // Ensure we have a proper error message
+      let errorMessage = "Processing failed";
+      if (error instanceof Error) {
+        errorMessage = error.message || "Unknown error occurred";
+      } else if (typeof error === "string") {
+        errorMessage = error;
+      } else if (error && typeof error === "object" && "message" in error) {
+        errorMessage = String(error.message);
+      } else {
+        errorMessage = `Processing failed: ${JSON.stringify(error) || "Unknown error"}`;
+      }
+      
       // Update database with error
       await db.file.update({
         where: { id: fileId },
         data: {
           status: "failed",
-          error: error instanceof Error ? error.message : "Processing failed",
+          error: errorMessage,
         },
       });
     }
