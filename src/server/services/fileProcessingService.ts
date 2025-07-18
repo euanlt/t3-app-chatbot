@@ -5,7 +5,7 @@ import { db } from "~/server/db";
 import type { File } from "@prisma/client";
 import { env } from "~/env";
 import mammoth from "mammoth";
-import pdf from "pdf-parse/lib/pdf-parse.js";
+import pdf from "pdf-parse";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { ragService } from "./ragService";
 
