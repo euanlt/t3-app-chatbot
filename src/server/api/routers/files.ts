@@ -254,6 +254,17 @@ export const filesRouter = createTRPCRouter({
         });
       }
 
+      // Log the actual database values for debugging
+      if (file.status === "failed") {
+        logger.error("File processing failed", {
+          fileId: input.fileId,
+          status: file.status,
+          error: file.error,
+          errorType: typeof file.error,
+          errorLength: file.error?.length
+        });
+      }
+      
       return {
         fileId: input.fileId,
         status: file.status as "pending" | "processing" | "completed" | "failed",

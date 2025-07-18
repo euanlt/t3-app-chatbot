@@ -246,7 +246,12 @@ export class FileProcessingService {
         // Set filePath to the Supabase path for consistency
         filePath = storageUrl;
       } else {
-        throw new Error("No storage backend available");
+        logger.error("No storage backend available", {
+          supabaseConfigured: !!supabase,
+          useLocalStorage: this.useLocalStorage,
+          environment: process.env.NODE_ENV
+        });
+        throw new Error("No storage backend available - Supabase not configured");
       }
 
       // Create database record

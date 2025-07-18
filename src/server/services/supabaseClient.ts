@@ -8,6 +8,14 @@ const logger = createLogger("SupabaseClient");
 const supabaseUrl = env.SUPABASE_URL || env.NEXT_PUBLIC_SUPABASE_URL || "";
 const supabaseServiceKey = env.SUPABASE_SERVICE_ROLE_KEY || "";
 
+logger.info("Supabase configuration check", {
+  hasUrl: !!supabaseUrl,
+  urlLength: supabaseUrl.length,
+  hasServiceKey: !!supabaseServiceKey,
+  keyLength: supabaseServiceKey.length,
+  environment: process.env.NODE_ENV
+});
+
 if (!supabaseUrl || !supabaseServiceKey) {
   logger.warn("Supabase credentials not configured. File uploads will not work in production.");
 }
