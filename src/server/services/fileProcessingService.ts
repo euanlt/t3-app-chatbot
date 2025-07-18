@@ -154,6 +154,13 @@ export class FileProcessingService {
     // Use local storage in development or if Supabase is not configured
     this.useLocalStorage = process.env.NODE_ENV === "development" || !supabase;
     
+    logger.info("FileProcessingService initialized", {
+      environment: process.env.NODE_ENV,
+      useLocalStorage: this.useLocalStorage,
+      supabaseConfigured: !!supabase,
+      uploadDir: this.uploadDir
+    });
+    
     if (this.useLocalStorage) {
       this.ensureUploadDirectory();
     }
@@ -200,6 +207,13 @@ export class FileProcessingService {
         // Supabase storage for production
         const storagePath = `uploads/${userId || 'anonymous'}/${filename}`;
         
+        logger.info("Attempting Supabase upload", { 
+          bucket: STORAGE_BUCKET,
+          path: storagePath,
+          size: buffer.length,
+          mimetype
+        });
+        
         const { error } = await supabase.storage
           .from(STORAGE_BUCKET)
           .upload(storagePath, buffer, {
@@ -208,6 +222,11 @@ export class FileProcessingService {
           });
 
         if (error) {
+          logger.error("Supabase upload failed", { 
+            error: error.message || error,
+            bucket: STORAGE_BUCKET,
+            path: storagePath 
+          });
           throw error;
         }
 
