@@ -147,6 +147,7 @@ export default function Sidebar({
         {!isCollapsed ? (
           <>
             <h2 className="text-primary flex items-center gap-2 text-xl font-semibold">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src="/yno-logo.png" alt="YNO Logo" className="h-6 w-6" />
               YNO
             </h2>

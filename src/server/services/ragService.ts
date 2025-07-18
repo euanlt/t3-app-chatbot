@@ -1,6 +1,6 @@
 import { type PrismaClient } from "@prisma/client";
 import { embeddingService } from "./embeddingService";
-import { documentChunker, type DocumentChunk } from "./documentChunker";
+import { documentChunker } from "./documentChunker";
 import { createLogger } from "~/server/services/logger";
 import { db } from "~/server/db";
 
@@ -116,7 +116,7 @@ export class RAGService {
       }
 
       // Build the where clause
-      const whereClause: any = {};
+      const whereClause: Record<string, unknown> = {};
       if (fileIds && fileIds.length > 0) {
         whereClause.fileId = { in: fileIds };
       }

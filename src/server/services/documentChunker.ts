@@ -72,7 +72,7 @@ export class DocumentChunker {
   /**
    * Enhanced chunking that preserves document structure
    */
-  chunkStructuredText(text: string, documentType?: string): DocumentChunk[] {
+  chunkStructuredText(text: string, _documentType?: string): DocumentChunk[] {
     const chunks: DocumentChunk[] = [];
     
     // Detect sections (markdown headers, chapter titles, etc.)
