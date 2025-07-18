@@ -169,7 +169,7 @@ export class DocumentChunker {
 
       // Start new section
       sections.push({
-        title: match[2].trim(),
+        title: match[2]?.trim() ?? "Section",
         content: "",
       });
 
