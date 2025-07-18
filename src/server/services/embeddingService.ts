@@ -1,4 +1,4 @@
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import { GoogleGenerativeAI, TaskType } from "@google/generative-ai";
 import { env } from "~/env";
 import { createLogger } from "~/server/services/logger";
 
@@ -30,7 +30,7 @@ export class EmbeddingService {
           role: "user",
           parts: [{ text }] 
         },
-        taskType: "RETRIEVAL_DOCUMENT",
+        taskType: TaskType.RETRIEVAL_DOCUMENT,
       });
 
       const embedding = result.embedding.values;
@@ -77,7 +77,7 @@ export class EmbeddingService {
               role: "user",
               parts: [{ text }] 
             },
-            taskType: "RETRIEVAL_DOCUMENT",
+            taskType: TaskType.RETRIEVAL_DOCUMENT,
           }).then(result => result.embedding.values)
             .catch(error => {
               logger.error("Failed to generate embedding for text:", error);
