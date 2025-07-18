@@ -7,6 +7,7 @@ import { env } from "~/env";
 import mammoth from "mammoth";
 import pdf from "pdf-parse/lib/pdf-parse.js";
 import { GoogleGenerativeAI } from "@google/generative-ai";
+import { ragService } from "./ragService";
 
 const logger = createLogger("FileProcessingService");
 
@@ -259,6 +260,12 @@ export class FileProcessingService {
           extractedText,
         },
       });
+
+      // Process embeddings for RAG if text was extracted
+      if (extractedText && extractedText.trim().length > 0) {
+        logger.info("Processing embeddings for RAG", { fileId });
+        await ragService.processFile(fileId);
+      }
     } catch (error) {
       logger.error("Failed to process file", { fileId, error });
       

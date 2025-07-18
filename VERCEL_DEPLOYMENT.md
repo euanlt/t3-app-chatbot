@@ -68,7 +68,39 @@ Vercel will automatically:
 - Run database migrations
 - Build and deploy your application
 
+## Initial Database Setup
+
+After connecting your database, you need to create the tables:
+
+### Option 1: Using Vercel's Terminal (Recommended)
+
+1. Go to your Vercel project dashboard
+2. Navigate to the "Functions" tab
+3. Click on any function and then "View Function Logs"
+4. Open the terminal/console
+5. Run: `npx prisma db push`
+
+### Option 2: From Your Local Machine
+
+1. Copy your `DATABASE_URL` from Vercel's environment variables
+2. Run locally:
+   ```bash
+   DATABASE_URL="your-database-url-here" npm run db:push
+   ```
+
+### Option 3: Using Prisma Studio (Visual Interface)
+
+1. Run locally:
+   ```bash
+   DATABASE_URL="your-database-url-here" npx prisma studio
+   ```
+2. This opens a web interface to view and manage your database
+
 ## Troubleshooting
+
+### "The table public.Conversation does not exist"
+
+This means the database tables haven't been created yet. Run `npm run db:push` with your production DATABASE_URL to create them.
 
 ### Database Connection Issues
 
@@ -76,6 +108,7 @@ If you see "Invalid prisma.conversation.create() invocation":
 - Ensure `DATABASE_URL` is set in Vercel environment variables
 - Check that the database URL is correctly formatted
 - Verify the database is accessible from Vercel's servers
+- Make sure you've run `prisma db push` to create the tables
 
 ### File Uploads
 

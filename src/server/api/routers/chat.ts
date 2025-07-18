@@ -6,6 +6,7 @@ import { multiProviderAiService } from "~/server/services/multiProviderAiService
 import { TRPCError } from "@trpc/server";
 import { db } from "~/server/db";
 import { fileProcessingService } from "~/server/services/fileProcessingService";
+import { ragService } from "~/server/services/ragService";
 
 const logger = createLogger("ChatRouter");
 
@@ -83,6 +84,27 @@ export const chatRouter = createTRPCRouter({
           } else {
             combinedFileContext = validContents.join("\n\n");
           }
+        }
+      }
+
+      // Get RAG context based on the message
+      const ragContext = await ragService.getContext(
+        input.message,
+        conversationId,
+        5 // Get top 5 most relevant chunks
+      );
+      
+      if (ragContext) {
+        logger.info("RAG context retrieved", { 
+          contextLength: ragContext.length,
+          conversationId 
+        });
+        
+        // Prepend RAG context to the file context
+        if (combinedFileContext) {
+          combinedFileContext = ragContext + "\n\n" + combinedFileContext;
+        } else {
+          combinedFileContext = ragContext;
         }
       }
 

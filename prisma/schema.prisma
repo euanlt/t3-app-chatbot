@@ -99,8 +99,27 @@ model File {
   error         String?      @db.Text // Error message if processing failed
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
+  
+  // RAG relationships
+  embeddings    DocumentEmbedding[]
 
   @@index([userId])
   @@index([status])
+}
+
+// Document embeddings for RAG
+model DocumentEmbedding {
+  id          String   @id @default(cuid())
+  fileId      String
+  file        File     @relation(fields: [fileId], references: [id], onDelete: Cascade)
+  chunkIndex  Int      // Order of chunk in original document
+  content     String   @db.Text // The actual text content of this chunk
+  embedding   Json?    // Vector embedding stored as JSON
+  metadata    Json     @default("{}") // Additional metadata (page number, headers, etc.)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([fileId])
+  @@map("document_embeddings")
 }
 
