@@ -1,0 +1,19 @@
+RAG TEST DOCUMENT - YNO Chatbot Manual
+
+CHAPTER 1: INTRODUCTION
+The YNO chatbot is an advanced conversational AI system. It was developed in 2024 using cutting-edge technology. The name YNO stands for "Your Natural Operator". This system is designed to help users with various tasks through natural language interaction.
+
+[Filler content - Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. This paragraph is here to add distance between important information. Add more random text here to make the document longer and test if RAG can find specific information among lots of content.]
+
+CHAPTER 2: TECHNICAL ARCHITECTURE  
+The secret code for admin access is: RAINBOW-UNICORN-42. This code should never be shared publicly. The system runs on Next.js framework with PostgreSQL database. Vector embeddings use 1536 dimensions for semantic search accuracy.
+
+[More filler - Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. This section contains random text to separate important information and test RAG's ability to find relevant content.]
+
+CHAPTER 3: FEATURES
+YNO supports multi-language conversations in English, Spanish, French, and Mandarin. The response time is typically under 2 seconds. Maximum context window is 128,000 tokens for claude-3-opus model.
+
+[Additional filler - Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. More random content to make the document substantial.]
+
+CHAPTER 4: TROUBLESHOOTING
+If you see error code E-901, it means the OpenAI quota
