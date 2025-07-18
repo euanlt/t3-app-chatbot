@@ -5,7 +5,7 @@ import { db } from "~/server/db";
 import type { File } from "@prisma/client";
 import { env } from "~/env";
 import mammoth from "mammoth";
-import pdf from "pdf-parse";
+// Dynamic import to prevent build-time issues
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { ragService } from "./ragService";
 
@@ -52,6 +52,7 @@ async function readTextFile(filePath: string): Promise<string> {
 async function extractPdfText(filePath: string): Promise<string> {
   try {
     const dataBuffer = await fs.readFile(filePath);
+    const { default: pdf } = await import("pdf-parse");
     const data = await pdf(dataBuffer);
     return data.text;
   } catch (error) {
