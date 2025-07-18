@@ -8,6 +8,7 @@ import mammoth from "mammoth";
 // Dynamic import to prevent build-time issues
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { ragService } from "./ragService";
+import { supabase, STORAGE_BUCKET } from "./supabaseClient";
 
 const logger = createLogger("FileProcessingService");
 
@@ -146,10 +147,16 @@ function getMimeTypeFromPath(filePath: string): string {
 
 export class FileProcessingService {
   private uploadDir: string;
+  private useLocalStorage: boolean;
 
   constructor() {
     this.uploadDir = path.resolve(UPLOAD_DIR);
-    this.ensureUploadDirectory();
+    // Use local storage in development or if Supabase is not configured
+    this.useLocalStorage = process.env.NODE_ENV === "development" || !supabase;
+    
+    if (this.useLocalStorage) {
+      this.ensureUploadDirectory();
+    }
   }
 
   private async ensureUploadDirectory() {
@@ -180,11 +187,48 @@ export class FileProcessingService {
       const fileId = this.generateFileId();
       const extension = path.extname(originalName);
       const filename = `${fileId}${extension}`;
-      const filePath = path.join(this.uploadDir, filename);
+      
+      let filePath: string;
+      let storageUrl: string | null = null;
 
-      // Save file to disk
-      await fs.writeFile(filePath, buffer);
-      logger.info("File saved to disk", { filename, size: buffer.length });
+      if (this.useLocalStorage) {
+        // Local storage for development
+        filePath = path.join(this.uploadDir, filename);
+        await fs.writeFile(filePath, buffer);
+        logger.info("File saved to disk", { filename, size: buffer.length });
+      } else if (supabase) {
+        // Supabase storage for production
+        const storagePath = `uploads/${userId || 'anonymous'}/${filename}`;
+        
+        const { data, error } = await supabase.storage
+          .from(STORAGE_BUCKET)
+          .upload(storagePath, buffer, {
+            contentType: mimetype,
+            upsert: false,
+          });
+
+        if (error) {
+          throw error;
+        }
+
+        // Get the public URL for the file
+        const { data: urlData } = supabase.storage
+          .from(STORAGE_BUCKET)
+          .getPublicUrl(storagePath);
+          
+        storageUrl = urlData.publicUrl;
+        logger.info("File saved to Supabase Storage", { 
+          filename, 
+          size: buffer.length,
+          path: storagePath,
+          url: storageUrl,
+        });
+        
+        // Set filePath to the Supabase path for consistency
+        filePath = storageUrl;
+      } else {
+        throw new Error("No storage backend available");
+      }
 
       // Create database record
       const file = await db.file.create({
@@ -246,7 +290,55 @@ export class FileProcessingService {
         return;
       }
 
-      // Extract text
+      // Get file content based on storage type
+      let fileBuffer: Buffer;
+      if (file.path?.startsWith('http')) {
+        // File is in Supabase Storage - download it
+        const response = await fetch(file.path);
+        if (!response.ok) {
+          throw new Error(`Failed to download file from storage: ${response.statusText}`);
+        }
+        fileBuffer = Buffer.from(await response.arrayBuffer());
+        
+        // Create a temporary file for processors that need file paths
+        const tempDir = process.env.NODE_ENV === 'production' ? '/tmp' : UPLOAD_DIR;
+        const tempPath = path.join(tempDir, `temp_${path.basename(file.filename)}`);
+        await fs.writeFile(tempPath, fileBuffer);
+        
+        try {
+          // Extract text using the temporary file
+          const extractedText = await processor(tempPath);
+          logger.info("Text extracted from file", { 
+            fileId, 
+            textLength: extractedText.length 
+          });
+          
+          // Clean up temporary file
+          await fs.unlink(tempPath).catch(() => {});
+          
+          // Update database with extracted text
+          await db.file.update({
+            where: { id: fileId },
+            data: {
+              status: "completed",
+              extractedText,
+            },
+          });
+          
+          // Process embeddings for RAG if text was extracted
+          if (extractedText && extractedText.trim().length > 0) {
+            logger.info("Processing embeddings for RAG", { fileId });
+            await ragService.processFile(fileId);
+          }
+        } finally {
+          // Ensure temp file is cleaned up
+          await fs.unlink(tempPath).catch(() => {});
+        }
+        
+        return;
+      }
+
+      // Extract text for local files
       const extractedText = await processor(file.path!);
       logger.info("Text extracted from file", { 
         fileId, 
@@ -325,13 +417,38 @@ export class FileProcessingService {
         return false;
       }
 
-      // Delete from disk
+      // Delete from storage
       if (file.path) {
-        try {
-          await fs.unlink(file.path);
-          logger.info("File deleted from disk", { path: file.path });
-        } catch (error) {
-          logger.error("Failed to delete file from disk", { path: file.path, error });
+        if (file.path.startsWith('http') && supabase) {
+          // File is in Supabase Storage
+          try {
+            // Extract the storage path from the URL
+            const urlParts = file.path.split('/');
+            const storagePathIndex = urlParts.findIndex(part => part === STORAGE_BUCKET);
+            if (storagePathIndex !== -1) {
+              const storagePath = urlParts.slice(storagePathIndex + 1).join('/');
+              
+              const { error } = await supabase.storage
+                .from(STORAGE_BUCKET)
+                .remove([storagePath]);
+                
+              if (error) {
+                logger.error("Failed to delete file from Supabase", { path: storagePath, error });
+              } else {
+                logger.info("File deleted from Supabase", { path: storagePath });
+              }
+            }
+          } catch (error) {
+            logger.error("Failed to delete file from storage", { path: file.path, error: error instanceof Error ? error : { error } });
+          }
+        } else {
+          // Local file
+          try {
+            await fs.unlink(file.path);
+            logger.info("File deleted from disk", { path: file.path });
+          } catch (error) {
+            logger.error("Failed to delete file from disk", { path: file.path, error: error instanceof Error ? error : { error } });
+          }
         }
       }
 
