@@ -39,7 +39,7 @@ function getCurrentTime(timezone?: string): string {
     }).format(now);
     
     return `Current time in ${timezone}: ${timeInTimezone}`;
-  } catch (error) {
+  } catch {
     return `Invalid timezone "${timezone}". Try timezones like: America/New_York, Europe/London, Asia/Tokyo, Australia/Sydney`;
   }
 }

@@ -25,7 +25,6 @@ interface AgentsTabProps {
 export default function AgentsTab({ onSelectAgent }: AgentsTabProps) {
   const [selectedAgent, setSelectedAgent] = useState<string | null>(null);
   const [showAddDialog, setShowAddDialog] = useState(false);
-  const [editingAgent] = useState<string | null>(null);
 
   // Fetch agents using tRPC
   const { data: agents = [], refetch: refetchAgents } = api.agents.list.useQuery();

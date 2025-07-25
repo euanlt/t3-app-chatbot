@@ -178,11 +178,10 @@ export default function Home() {
         
         {/* Conditionally render agent chat or normal chat */}
         {selectedAgent ? (
-          <EnhancedAgentChat
+          <AgentChat
             agentId={selectedAgent.id}
             agentName={selectedAgent.name}
             endpoint={selectedAgent.endpoint || `/api/agents/${selectedAgent.id}`}
-            feature={selectedAgent.feature}
           />
         ) : (
           <ChatWindow
