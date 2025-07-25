@@ -4,7 +4,6 @@ import { useState, useEffect } from "react";
 import ChatWindow from "./_components/chat/ChatWindow";
 import Sidebar from "./_components/sidebar/Sidebar";
 import AgentChat from "./_components/agents/AgentChat";
-import EnhancedAgentChat from "./_components/agents/EnhancedAgentChat";
 import { api } from "~/trpc/react";
 import { FaArrowLeft } from "react-icons/fa";
 
