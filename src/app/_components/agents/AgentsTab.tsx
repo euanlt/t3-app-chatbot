@@ -1,10 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { FaPlus, FaPlay, FaStop, FaTrash, FaCog, FaComments, FaArrowLeft } from "react-icons/fa";
+import { FaPlus, FaPlay, FaStop, FaTrash, FaCog, FaComments } from "react-icons/fa";
 import { api } from "~/trpc/react";
 import AddAgentDialog from "./AddAgentDialog";
-import AgentChat from "./AgentChat";
 
 interface Agent {
   id: string;
@@ -19,11 +18,14 @@ interface Agent {
   updatedAt: Date;
 }
 
-export default function AgentsTab() {
+interface AgentsTabProps {
+  onSelectAgent?: (agent: { id: string; name: string; endpoint?: string } | null) => void;
+}
+
+export default function AgentsTab({ onSelectAgent }: AgentsTabProps) {
   const [selectedAgent, setSelectedAgent] = useState<string | null>(null);
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [editingAgent] = useState<string | null>(null);
-  const [chatAgent, setChatAgent] = useState<Agent | null>(null);
 
   // Fetch agents using tRPC
   const { data: agents = [], refetch: refetchAgents } = api.agents.list.useQuery();
@@ -63,35 +65,14 @@ export default function AgentsTab() {
   };
 
   const handleChatWithAgent = (agent: Agent) => {
-    setChatAgent(agent);
+    if (onSelectAgent) {
+      onSelectAgent({
+        id: agent.id,
+        name: agent.name,
+        endpoint: agent.endpoint
+      });
+    }
   };
-
-  const handleBackToAgents = () => {
-    setChatAgent(null);
-  };
-
-  // If chat is open, show chat interface
-  if (chatAgent) {
-    return (
-      <div className="h-full flex flex-col">
-        <div className="border-primary border-b p-4 flex items-center gap-2">
-          <button
-            onClick={handleBackToAgents}
-            className="text-secondary hover:text-primary p-1 rounded transition-colors"
-            title="Back to agents"
-          >
-            <FaArrowLeft className="h-4 w-4" />
-          </button>
-          <h3 className="text-primary font-medium">Chat with {chatAgent.name}</h3>
-        </div>
-        <AgentChat
-          agentId={chatAgent.id}
-          agentName={chatAgent.name}
-          endpoint={chatAgent.endpoint || `/api/agents/${chatAgent.id}`}
-        />
-      </div>
-    );
-  }
 
   return (
     <div className="h-full flex flex-col">

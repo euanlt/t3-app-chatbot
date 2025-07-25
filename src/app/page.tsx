@@ -3,13 +3,21 @@
 import { useState, useEffect } from "react";
 import ChatWindow from "./_components/chat/ChatWindow";
 import Sidebar from "./_components/sidebar/Sidebar";
+import AgentChat from "./_components/agents/AgentChat";
 import { api } from "~/trpc/react";
+import { FaArrowLeft } from "react-icons/fa";
 
 interface UploadedFile {
   id: string;
   name: string;
   content?: string;
   status?: "pending" | "processing" | "completed" | "failed";
+}
+
+interface Agent {
+  id: string;
+  name: string;
+  endpoint?: string;
 }
 
 export default function Home() {
@@ -20,6 +28,7 @@ export default function Home() {
   const [currentConversationId, setCurrentConversationId] = useState<
     string | undefined
   >();
+  const [selectedAgent, setSelectedAgent] = useState<Agent | null>(null);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(() => {
     if (typeof window !== 'undefined') {
       const saved = localStorage.getItem('sidebarCollapsed');
@@ -136,6 +145,7 @@ export default function Home() {
         onSelectConversation={setCurrentConversationId}
         isCollapsed={isSidebarCollapsed}
         onToggleCollapse={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+        onSelectAgent={setSelectedAgent}
       />
 
       {/* Chat Area */}
@@ -152,11 +162,33 @@ export default function Home() {
             </svg>
           </button>
         )}
-        <ChatWindow
-          selectedModel={selectedModel}
-          uploadedFiles={uploadedFiles}
-          conversationId={currentConversationId}
-        />
+        
+        {/* Back to chat button when in agent mode */}
+        {selectedAgent && (
+          <button
+            onClick={() => setSelectedAgent(null)}
+            className="absolute right-4 top-4 z-10 bg-button text-button hover:bg-button-hover px-4 py-2 rounded-lg shadow-lg transition-all flex items-center gap-2"
+            title="Back to normal chat"
+          >
+            <FaArrowLeft className="h-4 w-4" />
+            Back to Chat
+          </button>
+        )}
+        
+        {/* Conditionally render agent chat or normal chat */}
+        {selectedAgent ? (
+          <AgentChat
+            agentId={selectedAgent.id}
+            agentName={selectedAgent.name}
+            endpoint={selectedAgent.endpoint || `/api/agents/${selectedAgent.id}`}
+          />
+        ) : (
+          <ChatWindow
+            selectedModel={selectedModel}
+            uploadedFiles={uploadedFiles}
+            conversationId={currentConversationId}
+          />
+        )}
       </div>
     </div>
   );

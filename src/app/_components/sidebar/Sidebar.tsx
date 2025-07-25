@@ -28,6 +28,12 @@ import ApiKeyDialog from "~/app/_components/customModels/ApiKeyDialog";
 import { formatDistanceToNow } from "~/utils/date";
 import AgentsTab from "~/app/_components/agents/AgentsTab";
 
+interface Agent {
+  id: string;
+  name: string;
+  endpoint?: string;
+}
+
 interface SidebarProps {
   selectedModel: string;
   onModelChange: (modelId: string) => void;
@@ -38,6 +44,7 @@ interface SidebarProps {
   onSelectConversation: (conversationId: string | undefined) => void;
   isCollapsed: boolean;
   onToggleCollapse: () => void;
+  onSelectAgent?: (agent: Agent | null) => void;
 }
 
 export default function Sidebar({
@@ -50,6 +57,7 @@ export default function Sidebar({
   onSelectConversation,
   isCollapsed,
   onToggleCollapse,
+  onSelectAgent,
 }: SidebarProps) {
   const [activeTab, setActiveTab] = useState<
     "models" | "files" | "plugins" | "conversations" | "agents"
@@ -176,10 +184,10 @@ export default function Sidebar({
       </div>
 
       {/* Tabs */}
-      <div className={`border-primary flex border-b ${isCollapsed ? "flex-col" : ""}`}>
+      <div className={`border-primary border-b ${isCollapsed ? "flex flex-col" : "flex overflow-x-auto scrollbar-thin scrollbar-thumb-gray-400 scrollbar-track-transparent"}`}>
         <button
           onClick={() => setActiveTab("models")}
-          className={`${isCollapsed ? "px-2 py-3" : "flex-1 px-4 py-2"} text-sm font-medium transition-colors ${
+          className={`${isCollapsed ? "px-2 py-3" : "px-4 py-2 min-w-fit whitespace-nowrap"} text-sm font-medium transition-colors ${
             activeTab === "models"
               ? isCollapsed ? "bg-blue-600/10 text-blue-600" : "border-b-2 border-blue-600 text-blue-600"
               : "text-secondary hover:text-primary"
@@ -191,7 +199,7 @@ export default function Sidebar({
         </button>
         <button
           onClick={() => setActiveTab("files")}
-          className={`${isCollapsed ? "px-2 py-3" : "flex-1 px-4 py-2"} text-sm font-medium transition-colors ${
+          className={`${isCollapsed ? "px-2 py-3" : "px-4 py-2 min-w-fit whitespace-nowrap"} text-sm font-medium transition-colors ${
             activeTab === "files"
               ? isCollapsed ? "bg-blue-600/10 text-blue-600" : "border-b-2 border-blue-600 text-blue-600"
               : "text-secondary hover:text-primary"
@@ -203,7 +211,7 @@ export default function Sidebar({
         </button>
         <button
           onClick={() => setActiveTab("plugins")}
-          className={`${isCollapsed ? "px-2 py-3" : "flex-1 px-4 py-2"} text-sm font-medium transition-colors ${
+          className={`${isCollapsed ? "px-2 py-3" : "px-4 py-2 min-w-fit whitespace-nowrap"} text-sm font-medium transition-colors ${
             activeTab === "plugins"
               ? isCollapsed ? "bg-blue-600/10 text-blue-600" : "border-b-2 border-blue-600 text-blue-600"
               : "text-secondary hover:text-primary"
@@ -215,7 +223,7 @@ export default function Sidebar({
         </button>
         <button
           onClick={() => setActiveTab("conversations")}
-          className={`${isCollapsed ? "px-2 py-3" : "flex-1 px-4 py-2"} text-sm font-medium transition-colors ${
+          className={`${isCollapsed ? "px-2 py-3" : "px-4 py-2 min-w-fit whitespace-nowrap"} text-sm font-medium transition-colors ${
             activeTab === "conversations"
               ? isCollapsed ? "bg-blue-600/10 text-blue-600" : "border-b-2 border-blue-600 text-blue-600"
               : "text-secondary hover:text-primary"
@@ -227,7 +235,7 @@ export default function Sidebar({
         </button>
         <button
           onClick={() => setActiveTab("agents")}
-          className={`${isCollapsed ? "px-2 py-3" : "flex-1 px-4 py-2"} text-sm font-medium transition-colors ${
+          className={`${isCollapsed ? "px-2 py-3" : "px-4 py-2 min-w-fit whitespace-nowrap"} text-sm font-medium transition-colors ${
             activeTab === "agents"
               ? isCollapsed ? "bg-blue-600/10 text-blue-600" : "border-b-2 border-blue-600 text-blue-600"
               : "text-secondary hover:text-primary"
@@ -743,7 +751,7 @@ export default function Sidebar({
         )}
 
         {/* Agents Tab */}
-        {activeTab === "agents" && <AgentsTab />}
+        {activeTab === "agents" && <AgentsTab onSelectAgent={onSelectAgent} />}
       </div>
       )}
 

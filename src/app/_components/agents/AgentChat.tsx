@@ -88,12 +88,6 @@ export default function AgentChat({ agentName, endpoint }: AgentChatProps) {
 
   return (
     <div className="flex h-full flex-col">
-      {/* Header */}
-      <div className="border-primary border-b p-4">
-        <h3 className="text-primary font-medium">{agentName}</h3>
-        <p className="text-secondary text-sm">Chat with this AI agent</p>
-      </div>
-
       {/* Messages */}
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
         {messages.map((message, index) => (
