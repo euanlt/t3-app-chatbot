@@ -16,6 +16,7 @@ import {
   FaTimes,
   FaChevronLeft,
   FaChevronRight,
+  FaUsers,
 } from "react-icons/fa";
 import { api } from "~/trpc/react";
 import ThemeToggle from "~/app/_components/theme/ThemeToggle";
@@ -25,6 +26,7 @@ import ServerTemplates from "~/app/_components/mcp/ServerTemplates";
 import AddCustomModelDialog from "~/app/_components/customModels/AddCustomModelDialog";
 import ApiKeyDialog from "~/app/_components/customModels/ApiKeyDialog";
 import { formatDistanceToNow } from "~/utils/date";
+import AgentsTab from "~/app/_components/agents/AgentsTab";
 
 interface SidebarProps {
   selectedModel: string;
@@ -50,7 +52,7 @@ export default function Sidebar({
   onToggleCollapse,
 }: SidebarProps) {
   const [activeTab, setActiveTab] = useState<
-    "models" | "files" | "plugins" | "conversations"
+    "models" | "files" | "plugins" | "conversations" | "agents"
   >("models");
   const [showAddServerDialog, setShowAddServerDialog] = useState(false);
   const [editingServer, setEditingServer] = useState<string | null>(null);
@@ -222,6 +224,18 @@ export default function Sidebar({
         >
           <FaComments className={isCollapsed ? "mx-auto" : "mr-1 inline"} />
           {!isCollapsed && "History"}
+        </button>
+        <button
+          onClick={() => setActiveTab("agents")}
+          className={`${isCollapsed ? "px-2 py-3" : "flex-1 px-4 py-2"} text-sm font-medium transition-colors ${
+            activeTab === "agents"
+              ? isCollapsed ? "bg-blue-600/10 text-blue-600" : "border-b-2 border-blue-600 text-blue-600"
+              : "text-secondary hover:text-primary"
+          }`}
+          title={isCollapsed ? "Agents" : undefined}
+        >
+          <FaUsers className={isCollapsed ? "mx-auto" : "mr-1 inline"} />
+          {!isCollapsed && "Agents"}
         </button>
       </div>
 
@@ -727,6 +741,9 @@ export default function Sidebar({
             )}
           </div>
         )}
+
+        {/* Agents Tab */}
+        {activeTab === "agents" && <AgentsTab />}
       </div>
       )}
 

@@ -26,6 +26,8 @@
     "db:generate": "prisma generate"
   },
   "dependencies": {
+    "@ag-ui/client": "^0.0.35",
+    "@ag-ui/core": "^0.0.35",
     "@anthropic-ai/sdk": "^0.56.0",
     "@google/generative-ai": "^0.24.1",
     "@modelcontextprotocol/sdk": "^1.15.0",

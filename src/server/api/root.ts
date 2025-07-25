@@ -6,6 +6,7 @@ import { mcpRouter } from "~/server/api/routers/mcp";
 import { conversationRouter } from "~/server/api/routers/conversation";
 import { customModelsRouter } from "~/server/api/routers/customModels";
 import { ragRouter } from "~/server/api/routers/rag";
+import { agentsRouter } from "~/server/api/routers/agents";
 import { createCallerFactory, createTRPCRouter } from "~/server/api/trpc";
 
 /**
@@ -22,6 +23,7 @@ export const appRouter = createTRPCRouter({
   conversation: conversationRouter,
   customModels: customModelsRouter,
   rag: ragRouter,
+  agents: agentsRouter,
 });
 
 // export type definition of API
