@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { FaPlus, FaPlay, FaStop, FaTrash, FaEdit, FaCog, FaComments, FaArrowLeft } from "react-icons/fa";
+import { FaPlus, FaPlay, FaStop, FaTrash, FaCog, FaComments, FaArrowLeft } from "react-icons/fa";
 import { api } from "~/trpc/react";
 import AddAgentDialog from "./AddAgentDialog";
 import AgentChat from "./AgentChat";
@@ -12,7 +12,7 @@ interface Agent {
   description: string;
   type: "pydantic" | "custom";
   endpoint?: string;
-  config?: Record<string, any>;
+  config?: Record<string, unknown>;
   status: "active" | "inactive" | "error";
   userId: string;
   createdAt: Date;
@@ -22,7 +22,7 @@ interface Agent {
 export default function AgentsTab() {
   const [selectedAgent, setSelectedAgent] = useState<string | null>(null);
   const [showAddDialog, setShowAddDialog] = useState(false);
-  const [editingAgent, setEditingAgent] = useState<string | null>(null);
+  const [editingAgent] = useState<string | null>(null);
   const [chatAgent, setChatAgent] = useState<Agent | null>(null);
 
   // Fetch agents using tRPC
@@ -123,7 +123,7 @@ export default function AgentsTab() {
                   onSelect={() => setSelectedAgent(agent.id)}
                   onStart={() => handleStartAgent(agent.id)}
                   onStop={() => handleStopAgent(agent.id)}
-                  onEdit={() => setEditingAgent(agent.id)}
+                  onEdit={() => console.log("Edit agent:", agent.id)}
                   onDelete={() => handleDeleteAgent(agent.id)}
                   onChat={() => handleChatWithAgent(agent)}
                 />
@@ -155,7 +155,7 @@ export default function AgentsTab() {
                     onSelect={() => setSelectedAgent(agent.id)}
                     onStart={() => handleStartAgent(agent.id)}
                     onStop={() => handleStopAgent(agent.id)}
-                    onEdit={() => setEditingAgent(agent.id)}
+                    onEdit={() => console.log("Edit agent:", agent.id)}
                     onDelete={() => handleDeleteAgent(agent.id)}
                     onChat={() => handleChatWithAgent(agent)}
                   />

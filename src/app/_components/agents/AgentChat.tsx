@@ -15,7 +15,7 @@ interface AgentChatProps {
   endpoint: string;
 }
 
-export default function AgentChat({ agentId, agentName, endpoint }: AgentChatProps) {
+export default function AgentChat({ agentName, endpoint }: AgentChatProps) {
   const [messages, setMessages] = useState<Message[]>([
     {
       role: 'assistant',

@@ -5,20 +5,18 @@ import {
 } from "~/server/api/trpc";
 import { type HttpAgent } from "@ag-ui/client";
 
-const agentSchema = z.object({
-  id: z.string(),
-  name: z.string(),
-  description: z.string(),
-  type: z.enum(["pydantic", "custom"]),
-  endpoint: z.string().optional(),
-  config: z.record(z.any()).optional(),
-  status: z.enum(["active", "inactive", "error"]),
-  userId: z.string(),
-  createdAt: z.date(),
-  updatedAt: z.date(),
-});
-
-type Agent = z.infer<typeof agentSchema>;
+interface Agent {
+  id: string;
+  name: string;
+  description: string;
+  type: "pydantic" | "custom";
+  endpoint?: string;
+  config?: Record<string, unknown>;
+  status: "active" | "inactive" | "error";
+  userId: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
 
 // In-memory store for now - will be replaced with database
 const agentsStore = new Map<string, Agent>();
@@ -56,7 +54,7 @@ const pydanticAgents: Omit<Agent, "userId" | "createdAt" | "updatedAt">[] = [
 const activeAgents = new Map<string, HttpAgent>();
 
 export const agentsRouter = createTRPCRouter({
-  list: publicProcedure.query(async ({ ctx }) => {
+  list: publicProcedure.query(async () => {
     const userId = "default-user";
     
     // Add PydanticAI agents for all users
@@ -81,7 +79,7 @@ export const agentsRouter = createTRPCRouter({
     .input(z.object({
       id: z.string(),
     }))
-    .query(async ({ ctx, input }) => {
+    .query(async ({ input }) => {
       const userId = "default-user";
       
       // Check if it's a PydanticAI agent
@@ -109,9 +107,9 @@ export const agentsRouter = createTRPCRouter({
       name: z.string(),
       description: z.string(),
       endpoint: z.string().url(),
-      config: z.record(z.any()).optional(),
+      config: z.record(z.unknown()).optional(),
     }))
-    .mutation(async ({ ctx, input }) => {
+    .mutation(async ({ input }) => {
       const agent: Agent = {
         id: `custom-${Date.now()}`,
         name: input.name,
@@ -135,9 +133,9 @@ export const agentsRouter = createTRPCRouter({
       name: z.string().optional(),
       description: z.string().optional(),
       endpoint: z.string().url().optional(),
-      config: z.record(z.any()).optional(),
+      config: z.record(z.unknown()).optional(),
     }))
-    .mutation(async ({ ctx, input }) => {
+    .mutation(async ({ input }) => {
       const agent = agentsStore.get(input.id);
       if (!agent || agent.userId !== "default-user") {
         throw new Error("Agent not found");
@@ -164,7 +162,7 @@ export const agentsRouter = createTRPCRouter({
     .input(z.object({
       id: z.string(),
     }))
-    .mutation(async ({ ctx, input }) => {
+    .mutation(async ({ input }) => {
       const agent = agentsStore.get(input.id);
       if (!agent || agent.userId !== "default-user") {
         throw new Error("Agent not found");
@@ -187,7 +185,7 @@ export const agentsRouter = createTRPCRouter({
     .input(z.object({
       id: z.string(),
     }))
-    .mutation(async ({ ctx, input }) => {
+    .mutation(async ({ input }) => {
       const userId = "default-user";
       
       // Get agent
@@ -228,7 +226,7 @@ export const agentsRouter = createTRPCRouter({
     .input(z.object({
       id: z.string(),
     }))
-    .mutation(async ({ ctx, input }) => {
+    .mutation(async ({ input }) => {
       const userId = "default-user";
       
       // Get agent
