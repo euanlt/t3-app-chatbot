@@ -25,7 +25,7 @@ Weather assistant agent with tools:
 
 ## Usage
 
-Each agent endpoint accepts POST requests with AG-UI protocol format:
+Each agent endpoint accepts POST requests:
 
 ```typescript
 // Frontend usage (already integrated)
@@ -39,43 +39,38 @@ const response = await fetch('/api/agents/agentic_chat', {
   })
 });
 
-// Response is Server-Sent Events stream
-const reader = response.body.getReader();
-// ... handle streaming response
+// Response is JSON
+const result = await response.json();
+console.log(result.data.content); // Agent's response
 ```
 
 ## Adding New Agents
 
 1. Create a new `.py` file in `/api/agents/`
-2. Import the base handler: `from _base import create_agent_handler`
+2. Use the `BaseHTTPRequestHandler` pattern (see existing agents)
 3. Define your PydanticAI agent with tools
-4. Export the handler: `handler = create_agent_handler(your_agent)`
-5. Add main function for Vercel: `def main(event, context): return asyncio.run(handler(event, context))`
-6. Update the frontend agent list in `src/server/api/routers/agents.ts`
+4. Implement `do_POST` method to handle requests
+5. Update the frontend agent list in `src/server/api/routers/agents.ts`
 
-## Local Development
+Example template:
+```python
+from http.server import BaseHTTPRequestHandler
+import json, asyncio
+from pydantic_ai import Agent
+from pydantic_ai.models.openai import OpenAIModel
 
-For local testing:
-```bash
-# Install Python dependencies
-cd api && pip install -r requirements.txt
+model = OpenAIModel('gpt-4o-mini', api_key=os.getenv('OPENAI_API_KEY'))
+agent = Agent(model, system_prompt="Your prompt here")
 
-# Run a test
-python -c "
-import asyncio
-from agents.agentic_chat import handler
-
-event = {
-    'httpMethod': 'POST',
-    'body': '{\"messages\": [{\"role\": \"user\", \"content\": \"Hello!\"}]}'
-}
-print(asyncio.run(handler(event, {})))
-"
+class handler(BaseHTTPRequestHandler):
+    def do_POST(self):
+        # Handle request, run agent, return response
+        pass
 ```
 
 ## Architecture
 
-- **Base Handler** (`_base.py`): Wraps PydanticAI agents for Vercel serverless
-- **AG-UI Protocol**: Maintains compatibility with the AG-UI frontend protocol
-- **Streaming**: Uses Server-Sent Events for real-time agent responses
-- **Serverless**: Each agent is a separate Vercel function with ~30s timeout
+- **Vercel Python Runtime**: Uses `@vercel/python` runtime
+- **HTTP Handler**: Each agent uses `BaseHTTPRequestHandler`
+- **JSON Responses**: Simple request/response format
+- **Serverless**: Each agent is a separate Vercel function with 30s timeout

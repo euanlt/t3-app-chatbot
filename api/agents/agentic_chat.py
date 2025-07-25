@@ -1,16 +1,15 @@
 """
 Basic agentic chat agent for Vercel serverless deployment.
-Similar to the PydanticAI dojo example.
 """
 
 import os
+import json
 from datetime import datetime
-from typing import Dict, Any
+from http.server import BaseHTTPRequestHandler
+import asyncio
 
 from pydantic_ai import Agent
 from pydantic_ai.models.openai import OpenAIModel
-
-from _base import create_agent_handler
 
 
 # Create the model
@@ -50,13 +49,62 @@ async def set_background_color(color: str) -> str:
     return f"Background color set to {color}! 🎨"
 
 
-# Create the Vercel handler
-handler = create_agent_handler(chat_agent)
-
-
-def main(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
-    """
-    Vercel serverless function entry point.
-    """
-    import asyncio
-    return asyncio.run(handler(event, context))
+class handler(BaseHTTPRequestHandler):
+    def do_POST(self):
+        try:
+            # Read request body
+            content_length = int(self.headers['Content-Length'])
+            body = self.rfile.read(content_length).decode('utf-8')
+            
+            # Parse request
+            try:
+                request_data = json.loads(body)
+                messages = request_data.get('messages', [])
+            except:
+                self.send_error(400, 'Invalid JSON')
+                return
+            
+            # Get the latest user message
+            user_message = ""
+            for msg in reversed(messages):
+                if msg.get('role') == 'user':
+                    user_message = msg.get('content', '')
+                    break
+            
+            if not user_message:
+                user_message = "Hello!"
+            
+            # Run the agent
+            async def run_agent():
+                result = await chat_agent.run(user_message)
+                return result.data
+            
+            response_text = asyncio.run(run_agent())
+            
+            # Send response
+            self.send_response(200)
+            self.send_header('Content-Type', 'application/json')
+            self.send_header('Access-Control-Allow-Origin', '*')
+            self.send_header('Access-Control-Allow-Methods', 'POST, OPTIONS')
+            self.send_header('Access-Control-Allow-Headers', 'Content-Type')
+            self.end_headers()
+            
+            response = {
+                'type': 'agent_response',
+                'data': {
+                    'content': response_text,
+                    'status': 'completed'
+                }
+            }
+            
+            self.wfile.write(json.dumps(response).encode('utf-8'))
+            
+        except Exception as e:
+            self.send_error(500, str(e))
+    
+    def do_OPTIONS(self):
+        self.send_response(200)
+        self.send_header('Access-Control-Allow-Origin', '*')
+        self.send_header('Access-Control-Allow-Methods', 'POST, OPTIONS')
+        self.send_header('Access-Control-Allow-Headers', 'Content-Type')
+        self.end_headers()
