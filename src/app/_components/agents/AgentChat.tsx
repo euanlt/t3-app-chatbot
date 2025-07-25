@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { FaPaperPlane, FaSpinner } from "react-icons/fa";
 
 interface Message {
@@ -25,6 +25,19 @@ export default function AgentChat({ agentName, endpoint }: AgentChatProps) {
   ]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [backgroundColor, setBackgroundColor] = useState<string | null>(null);
+
+  // Apply background color changes
+  useEffect(() => {
+    if (backgroundColor) {
+      document.body.style.backgroundColor = backgroundColor;
+    }
+    
+    // Cleanup on unmount
+    return () => {
+      document.body.style.backgroundColor = '';
+    };
+  }, [backgroundColor]);
 
   const sendMessage = async () => {
     if (!input.trim() || isLoading) return;
@@ -59,6 +72,11 @@ export default function AgentChat({ agentName, endpoint }: AgentChatProps) {
 
       const result = await response.json();
       
+      // Handle structured response actions
+      if (result.data?.action === 'set_background_color' && result.data?.color) {
+        setBackgroundColor(result.data.color);
+      }
+      
       const assistantMessage: Message = {
         role: 'assistant',
         content: result.data?.content || 'Sorry, I couldn\'t process that request.',
@@ -88,6 +106,13 @@ export default function AgentChat({ agentName, endpoint }: AgentChatProps) {
 
   return (
     <div className="flex h-full flex-col">
+      {/* Background color indicator */}
+      {backgroundColor && (
+        <div className="bg-blue-100 border-blue-300 border p-2 text-sm text-blue-800">
+          🎨 Background color changed to: <span className="font-semibold">{backgroundColor}</span>
+        </div>
+      )}
+      
       {/* Messages */}
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
         {messages.map((message, index) => (

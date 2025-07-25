@@ -24,30 +24,53 @@ const agentsStore = new Map<string, Agent>();
 // Initialize with PydanticAI agents (Vercel serverless functions)
 const pydanticAgents: Omit<Agent, "userId" | "createdAt" | "updatedAt">[] = [
   {
-    id: "agentic-chat",
+    id: "agentic_chat",
     name: "Agentic Chat",
-    description: "Basic chat agent with tool capabilities",
+    description: "Basic conversational agent with frontend tool integration. Can get current time in any timezone and change background colors.",
     type: "pydantic",
     endpoint: "/api/agents/agentic_chat",
     status: "inactive",
   },
   {
-    id: "weather-chat",
-    name: "Weather Chat",
-    description: "Chat agent that can provide weather information",
+    id: "human_in_the_loop",
+    name: "Human in the Loop",
+    description: "Collaborative task planner that generates task steps and lets users decide which ones to perform.",
     type: "pydantic",
-    endpoint: "/api/agents/weather_chat",
+    endpoint: "/api/agents/human_in_the_loop",
     status: "inactive",
   },
-  // Note: Other agents will be added as we implement them
-  // {
-  //   id: "agentic-generative-ui",
-  //   name: "Agentic Generative UI", 
-  //   description: "Agent that generates UI components",
-  //   type: "pydantic",
-  //   endpoint: "/api/agents/agentic_generative_ui",
-  //   status: "inactive",
-  // },
+  {
+    id: "agentic_generative_ui",
+    name: "Agentic Generative UI",
+    description: "Real-time status updates for long-running tasks with live progress feedback and sequential step processing.",
+    type: "pydantic",
+    endpoint: "/api/agents/agentic_generative_ui",
+    status: "inactive",
+  },
+  {
+    id: "tool_based_generative_ui",
+    name: "Tool Based Generative UI",
+    description: "Generate and display structured content like haikus with elegant presentation and automatic UI rendering.",
+    type: "pydantic",
+    endpoint: "/api/agents/tool_based_generative_ui",
+    status: "inactive",
+  },
+  {
+    id: "shared_state",
+    name: "Shared State",
+    description: "Bidirectional state synchronization between UI and agent. Create recipes with real-time form controls and state updates.",
+    type: "pydantic",
+    endpoint: "/api/agents/shared_state",
+    status: "inactive",
+  },
+  {
+    id: "predictive_state_updates",
+    name: "Predictive State Updates",
+    description: "Real-time collaborative document editing with diff visualization and streaming character-by-character updates.",
+    type: "pydantic",
+    endpoint: "/api/agents/predictive_state_updates",
+    status: "inactive",
+  },
 ];
 
 // Active agent instances
