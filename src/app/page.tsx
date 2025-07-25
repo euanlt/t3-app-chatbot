@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import ChatWindow from "./_components/chat/ChatWindow";
 import Sidebar from "./_components/sidebar/Sidebar";
 import AgentChat from "./_components/agents/AgentChat";
+import EnhancedAgentChat from "./_components/agents/EnhancedAgentChat";
 import { api } from "~/trpc/react";
 import { FaArrowLeft } from "react-icons/fa";
 
@@ -18,6 +19,7 @@ interface Agent {
   id: string;
   name: string;
   endpoint?: string;
+  feature?: string;
 }
 
 export default function Home() {
@@ -177,10 +179,11 @@ export default function Home() {
         
         {/* Conditionally render agent chat or normal chat */}
         {selectedAgent ? (
-          <AgentChat
+          <EnhancedAgentChat
             agentId={selectedAgent.id}
             agentName={selectedAgent.name}
             endpoint={selectedAgent.endpoint || `/api/agents/${selectedAgent.id}`}
+            feature={selectedAgent.feature}
           />
         ) : (
           <ChatWindow

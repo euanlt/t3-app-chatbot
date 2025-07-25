@@ -27,6 +27,7 @@ import AddCustomModelDialog from "~/app/_components/customModels/AddCustomModelD
 import ApiKeyDialog from "~/app/_components/customModels/ApiKeyDialog";
 import { formatDistanceToNow } from "~/utils/date";
 import AgentsTab from "~/app/_components/agents/AgentsTab";
+import EnhancedAgentsTab from "~/app/_components/agents/EnhancedAgentsTab";
 
 interface Agent {
   id: string;
@@ -751,7 +752,7 @@ export default function Sidebar({
         )}
 
         {/* Agents Tab */}
-        {activeTab === "agents" && <AgentsTab onSelectAgent={onSelectAgent} />}
+        {activeTab === "agents" && <EnhancedAgentsTab onSelectAgent={onSelectAgent} />}
       </div>
       )}
 
