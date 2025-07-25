@@ -1,9 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { FaPlus, FaPlay, FaStop, FaTrash, FaEdit, FaCog } from "react-icons/fa";
+import { FaPlus, FaPlay, FaStop, FaTrash, FaEdit, FaCog, FaComments, FaArrowLeft } from "react-icons/fa";
 import { api } from "~/trpc/react";
 import AddAgentDialog from "./AddAgentDialog";
+import AgentChat from "./AgentChat";
 
 interface Agent {
   id: string;
@@ -22,6 +23,7 @@ export default function AgentsTab() {
   const [selectedAgent, setSelectedAgent] = useState<string | null>(null);
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [editingAgent, setEditingAgent] = useState<string | null>(null);
+  const [chatAgent, setChatAgent] = useState<Agent | null>(null);
 
   // Fetch agents using tRPC
   const { data: agents = [], refetch: refetchAgents } = api.agents.list.useQuery();
@@ -60,6 +62,37 @@ export default function AgentsTab() {
     }
   };
 
+  const handleChatWithAgent = (agent: Agent) => {
+    setChatAgent(agent);
+  };
+
+  const handleBackToAgents = () => {
+    setChatAgent(null);
+  };
+
+  // If chat is open, show chat interface
+  if (chatAgent) {
+    return (
+      <div className="h-full flex flex-col">
+        <div className="border-primary border-b p-4 flex items-center gap-2">
+          <button
+            onClick={handleBackToAgents}
+            className="text-secondary hover:text-primary p-1 rounded transition-colors"
+            title="Back to agents"
+          >
+            <FaArrowLeft className="h-4 w-4" />
+          </button>
+          <h3 className="text-primary font-medium">Chat with {chatAgent.name}</h3>
+        </div>
+        <AgentChat
+          agentId={chatAgent.id}
+          agentName={chatAgent.name}
+          endpoint={chatAgent.endpoint || `/api/agents/${chatAgent.id}`}
+        />
+      </div>
+    );
+  }
+
   return (
     <div className="h-full flex flex-col">
       <div className="mb-4 flex items-center justify-between">
@@ -92,6 +125,7 @@ export default function AgentsTab() {
                   onStop={() => handleStopAgent(agent.id)}
                   onEdit={() => setEditingAgent(agent.id)}
                   onDelete={() => handleDeleteAgent(agent.id)}
+                  onChat={() => handleChatWithAgent(agent)}
                 />
               ))}
           </div>
@@ -123,6 +157,7 @@ export default function AgentsTab() {
                     onStop={() => handleStopAgent(agent.id)}
                     onEdit={() => setEditingAgent(agent.id)}
                     onDelete={() => handleDeleteAgent(agent.id)}
+                    onChat={() => handleChatWithAgent(agent)}
                   />
                 ))
             )}
@@ -148,6 +183,7 @@ interface AgentCardProps {
   onStop: () => void;
   onEdit: () => void;
   onDelete: () => void;
+  onChat: () => void;
 }
 
 function AgentCard({
@@ -158,6 +194,7 @@ function AgentCard({
   onStop,
   onEdit,
   onDelete,
+  onChat,
 }: AgentCardProps) {
   return (
     <div
@@ -228,6 +265,16 @@ function AgentCard({
             Stop
           </button>
         )}
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            onChat();
+          }}
+          className="rounded bg-green-600 px-2 py-1 text-xs text-white transition-colors hover:bg-green-700 dark:bg-green-700 dark:hover:bg-green-600"
+          title="Chat with agent"
+        >
+          <FaComments className="inline" />
+        </button>
         <button
           onClick={(e) => {
             e.stopPropagation();

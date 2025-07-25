@@ -4,11 +4,5 @@
   "installCommand": "npm install",
   "env": {
     "SKIP_ENV_VALIDATION": "1"
-  },
-  "functions": {
-    "api/agents/*.py": {
-      "runtime": "@vercel/python@3.9.16",
-      "maxDuration": 30
-    }
   }
 }

@@ -1,4 +1,0 @@
-pydantic-ai-slim==0.0.19
-pydantic>=2.10
-openai>=1.56
-httpx>=0.27
