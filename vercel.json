@@ -7,7 +7,7 @@
   },
   "functions": {
     "api/agents/*.py": {
-      "runtime": "@vercel/python",
+      "runtime": "@vercel/python@3.9.16",
       "maxDuration": 30
     }
   }
