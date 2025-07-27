@@ -28,7 +28,7 @@ const pydanticAgents: Omit<Agent, "userId" | "createdAt" | "updatedAt">[] = [
     name: "Agentic Chat",
     description: "Basic conversational agent with frontend tool integration. Can get current time in any timezone and change background colors.",
     type: "pydantic",
-    endpoint: "/api/agents/agentic_chat",
+    endpoint: "http://localhost:9000/agentic_chat",
     status: "inactive",
   },
   {
@@ -36,7 +36,7 @@ const pydanticAgents: Omit<Agent, "userId" | "createdAt" | "updatedAt">[] = [
     name: "Human in the Loop",
     description: "Collaborative task planner that generates task steps and lets users decide which ones to perform.",
     type: "pydantic",
-    endpoint: "/api/agents/human_in_the_loop",
+    endpoint: "http://localhost:9000/human_in_the_loop",
     status: "inactive",
   },
   {
@@ -44,7 +44,7 @@ const pydanticAgents: Omit<Agent, "userId" | "createdAt" | "updatedAt">[] = [
     name: "Agentic Generative UI",
     description: "Real-time status updates for long-running tasks with live progress feedback and sequential step processing.",
     type: "pydantic",
-    endpoint: "/api/agents/agentic_generative_ui",
+    endpoint: "http://localhost:9000/agentic_generative_ui",
     status: "inactive",
   },
   {
@@ -52,7 +52,7 @@ const pydanticAgents: Omit<Agent, "userId" | "createdAt" | "updatedAt">[] = [
     name: "Tool Based Generative UI",
     description: "Generate and display structured content like haikus with elegant presentation and automatic UI rendering.",
     type: "pydantic",
-    endpoint: "/api/agents/tool_based_generative_ui",
+    endpoint: "http://localhost:9000/tool_based_generative_ui",
     status: "inactive",
   },
   {
@@ -60,7 +60,7 @@ const pydanticAgents: Omit<Agent, "userId" | "createdAt" | "updatedAt">[] = [
     name: "Shared State",
     description: "Bidirectional state synchronization between UI and agent. Create recipes with real-time form controls and state updates.",
     type: "pydantic",
-    endpoint: "/api/agents/shared_state",
+    endpoint: "http://localhost:9000/shared_state",
     status: "inactive",
   },
   {
@@ -68,7 +68,7 @@ const pydanticAgents: Omit<Agent, "userId" | "createdAt" | "updatedAt">[] = [
     name: "Predictive State Updates",
     description: "Real-time collaborative document editing with diff visualization and streaming character-by-character updates.",
     type: "pydantic",
-    endpoint: "/api/agents/predictive_state_updates",
+    endpoint: "http://localhost:9000/predictive_state_updates",
     status: "inactive",
   },
 ];

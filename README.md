@@ -18,6 +18,13 @@ This is a [T3 Stack](https://create.t3.gg/) project with:
 - 🔌 **MCP Plugins**: Extensible plugin system for additional capabilities
 - 💬 **Real-time Chat**: Responsive chat interface with markdown support
 - 🎨 **Modern UI**: Clean, responsive design with Tailwind CSS
+- 🧠 **Pydantic AI Agents**: Advanced AI agents with AG-UI protocol integration
+  - Agentic Chat with tools (time, colors)
+  - Human-in-the-Loop workflows
+  - Real-time progress tracking
+  - Content generation (haikus, recipes, code)
+  - Collaborative state management
+  - Predictive text editing
 
 ## Getting Started
 
@@ -25,6 +32,7 @@ This is a [T3 Stack](https://create.t3.gg/) project with:
 
 - Node.js 18+ 
 - npm or yarn
+- Python 3.8+ (for Pydantic AI agents)
 
 ### Installation
 
@@ -54,6 +62,26 @@ npm run dev
 
 Open [http://localhost:3000](http://localhost:3000) to see the application.
 
+### Running Pydantic AI Agents (Optional)
+
+To use the advanced Pydantic AI agents:
+
+1. Set up Python environment:
+```bash
+python -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+npm run agents:install
+```
+
+2. Start the agents backend:
+```bash
+npm run agents:start
+```
+
+3. The agents will be available in the "Agents" tab of the sidebar.
+
+See [docs/PYDANTIC_AI_AGENTS.md](docs/PYDANTIC_AI_AGENTS.md) for detailed documentation.
+
 ## Project Structure
 
 ```
@@ -78,6 +106,8 @@ src/
 - `npm run start` - Start production server
 - `npm run lint` - Run ESLint
 - `npm run typecheck` - Run TypeScript type checking
+- `npm run agents:install` - Install Python dependencies for Pydantic AI agents
+- `npm run agents:start` - Start the Pydantic AI agents backend
 
 ## API Routes
 

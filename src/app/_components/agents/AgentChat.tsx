@@ -1,13 +1,10 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { FaPaperPlane, FaSpinner } from "react-icons/fa";
-
-interface Message {
-  role: 'user' | 'assistant';
-  content: string;
-  timestamp: Date;
-}
+import { useEffect } from "react";
+import { CopilotKit } from "@copilotkit/react-core";
+import { CopilotChat } from "@copilotkit/react-ui";
+import "@copilotkit/react-ui/styles.css";
+import { useCopilotAction } from "@copilotkit/react-core";
 
 interface AgentChatProps {
   agentId: string;
@@ -15,161 +12,100 @@ interface AgentChatProps {
   endpoint: string;
 }
 
-export default function AgentChat({ agentName, endpoint }: AgentChatProps) {
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      role: 'assistant',
-      content: `Hello! I'm ${agentName}. How can I help you today?`,
-      timestamp: new Date()
+// Client-side action handler for background color changes
+function BackgroundColorHandler() {
+  useCopilotAction({
+    name: "set_background_color",
+    description: "Change the background color of the application",
+    parameters: [
+      {
+        name: "color",
+        type: "string",
+        description: "The color to set (name or hex code)"
+      }
+    ],
+    handler: ({ color }) => {
+      // Apply the background color
+      document.body.style.backgroundColor = color;
+      
+      // Show visual feedback
+      const notification = document.createElement("div");
+      notification.className = "fixed top-4 right-4 bg-blue-100 border-blue-300 border p-4 rounded-lg shadow-lg z-50";
+      notification.innerHTML = `🎨 Background color changed to: <span class="font-semibold">${color}</span>`;
+      document.body.appendChild(notification);
+      
+      // Remove notification after 3 seconds
+      setTimeout(() => {
+        notification.remove();
+      }, 3000);
     }
-  ]);
-  const [input, setInput] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
-  const [backgroundColor, setBackgroundColor] = useState<string | null>(null);
+  });
+  
+  return null;
+}
 
-  // Apply background color changes
+export default function AgentChat({ agentId, agentName }: AgentChatProps) {
+  // Clean up background color on unmount
   useEffect(() => {
-    if (backgroundColor) {
-      document.body.style.backgroundColor = backgroundColor;
-    }
-    
-    // Cleanup on unmount
     return () => {
-      document.body.style.backgroundColor = '';
+      document.body.style.backgroundColor = "";
     };
-  }, [backgroundColor]);
-
-  const sendMessage = async () => {
-    if (!input.trim() || isLoading) return;
-
-    const userMessage: Message = {
-      role: 'user',
-      content: input.trim(),
-      timestamp: new Date()
-    };
-
-    setMessages(prev => [...prev, userMessage]);
-    setInput("");
-    setIsLoading(true);
-
-    try {
-      const response = await fetch(endpoint, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          messages: [...messages, userMessage].map(m => ({
-            role: m.role,
-            content: m.content
-          }))
-        })
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to get response');
-      }
-
-      const result = await response.json();
-      
-      // Handle structured response actions
-      if (result.data?.action === 'set_background_color' && result.data?.color) {
-        setBackgroundColor(result.data.color);
-      }
-      
-      const assistantMessage: Message = {
-        role: 'assistant',
-        content: result.data?.content || 'Sorry, I couldn\'t process that request.',
-        timestamp: new Date()
-      };
-
-      setMessages(prev => [...prev, assistantMessage]);
-    } catch (error) {
-      console.error('Error:', error);
-      const errorMessage: Message = {
-        role: 'assistant',
-        content: 'Sorry, there was an error processing your request. Please try again.',
-        timestamp: new Date()
-      };
-      setMessages(prev => [...prev, errorMessage]);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      sendMessage();
-    }
-  };
+  }, []);
 
   return (
-    <div className="flex h-full flex-col">
-      {/* Background color indicator */}
-      {backgroundColor && (
-        <div className="bg-blue-100 border-blue-300 border p-2 text-sm text-blue-800">
-          🎨 Background color changed to: <span className="font-semibold">{backgroundColor}</span>
+    <CopilotKit 
+      runtimeUrl="/api/copilotkit"
+      headers={{
+        "x-agent-id": agentId
+      }}
+    >
+      <BackgroundColorHandler />
+      <div className="flex h-full flex-col">
+        <div className="border-b border-primary bg-secondary p-4">
+          <h2 className="text-lg font-semibold text-primary">
+            {agentName} - Powered by Pydantic AI
+          </h2>
+          <p className="text-sm text-secondary">
+            {getAgentDescription(agentId)}
+          </p>
         </div>
-      )}
-      
-      {/* Messages */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
-        {messages.map((message, index) => (
-          <div
-            key={index}
-            className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
-          >
-            <div
-              className={`max-w-[80%] rounded-lg p-3 ${
-                message.role === 'user'
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-secondary text-primary'
-              }`}
-            >
-              <div className="whitespace-pre-wrap">{message.content}</div>
-              <div
-                className={`mt-1 text-xs ${
-                  message.role === 'user' ? 'text-blue-100' : 'text-tertiary'
-                }`}
-              >
-                {message.timestamp.toLocaleTimeString()}
-              </div>
-            </div>
-          </div>
-        ))}
         
-        {isLoading && (
-          <div className="flex justify-start">
-            <div className="bg-secondary text-primary rounded-lg p-3">
-              <FaSpinner className="animate-spin inline mr-2" />
-              Thinking...
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* Input */}
-      <div className="border-primary border-t p-4">
-        <div className="flex gap-2">
-          <textarea
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyPress={handleKeyPress}
-            placeholder="Type your message..."
-            rows={1}
-            className="bg-input border-input text-primary focus:border-focus flex-1 rounded-lg border px-3 py-2 resize-none outline-none"
-            disabled={isLoading}
+        <div className="flex-1 overflow-hidden">
+          <CopilotChat
+            labels={{
+              title: agentName,
+              initial: `Hello! I'm ${agentName}. ${getAgentGreeting(agentId)}`
+            }}
+            className="h-full"
           />
-          <button
-            onClick={sendMessage}
-            disabled={!input.trim() || isLoading}
-            className="bg-button text-button hover:bg-button-hover rounded-lg px-4 py-2 transition-colors disabled:opacity-50"
-          >
-            <FaPaperPlane />
-          </button>
         </div>
       </div>
-    </div>
+    </CopilotKit>
   );
+}
+
+function getAgentDescription(agentId: string): string {
+  const descriptions: Record<string, string> = {
+    agentic_chat: "Chat with AI that can check time in any timezone and change background colors",
+    human_in_the_loop: "Collaborative task planning with interactive approval workflows",
+    agentic_generative_ui: "Long-running tasks with real-time progress visualization",
+    tool_based_generative_ui: "Generate beautiful content like haikus, recipes, and code snippets",
+    shared_state: "Collaborative recipe builder with real-time state synchronization",
+    predictive_state_updates: "Real-time document editing with predictive text and diff visualization"
+  };
+  
+  return descriptions[agentId] || "AI-powered assistant";
+}
+
+function getAgentGreeting(agentId: string): string {
+  const greetings: Record<string, string> = {
+    agentic_chat: "I can help you check the time in different timezones or change the background color. Try asking me 'What time is it in Tokyo?' or 'Change the background to blue'!",
+    human_in_the_loop: "I can help you break down complex tasks into manageable steps. Tell me about a project you're working on!",
+    agentic_generative_ui: "I can help with long-running tasks and show you real-time progress. Ask me to deploy an app or analyze some data!",
+    tool_based_generative_ui: "I can create beautiful content for you. Ask me to write a haiku, generate a recipe, or create a code snippet!",
+    shared_state: "Let's build a recipe together! Tell me what kind of dish you'd like to make.",
+    predictive_state_updates: "I can help you write documents with real-time collaboration. Start by telling me what you'd like to write!"
+  };
+  
+  return greetings[agentId] || "How can I help you today?";
 }

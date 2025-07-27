@@ -23,7 +23,10 @@
     "start": "next start",
     "typecheck": "tsc --noEmit",
     "db:push": "prisma db push",
-    "db:generate": "prisma generate"
+    "db:generate": "prisma generate",
+    "agents:install": "cd src/server/services/pydantic-ai-agent && pip install -r requirements.txt",
+    "agents:start": "cd src/server/services/pydantic-ai-agent && python -m pydantic-ai-agent",
+    "agents:dev": "cd src/server/services/pydantic-ai-agent && python -m pydantic-ai-agent"
   },
   "dependencies": {
     "@ag-ui/client": "^0.0.35",
