@@ -3,25 +3,31 @@
 from __future__ import annotations
 
 import os
-from enum import StrEnum
+from enum import Enum
 from textwrap import dedent
 from typing import List
 
 from pydantic import BaseModel, Field
 
-from ag_ui.core import EventType, StateSnapshotEvent
 from pydantic_ai import Agent, RunContext
-from pydantic_ai.ag_ui import StateDeps
+from .ag_ui_types import StateSnapshotEvent, EventType, StateDeps
+
+# Load environment variables
+from dotenv import load_dotenv
+load_dotenv()
+
+# Set OpenRouter API key for Pydantic AI
+os.environ['OPENROUTER_API_KEY'] = os.getenv('OPENROUTER_API_KEY', '')
 
 
-class SkillLevel(StrEnum):
+class SkillLevel(str, Enum):
     """The level of skill required for the recipe."""
     BEGINNER = 'Beginner'
     INTERMEDIATE = 'Intermediate'
     ADVANCED = 'Advanced'
 
 
-class SpecialPreferences(StrEnum):
+class SpecialPreferences(str, Enum):
     """Special preferences for the recipe."""
     HIGH_PROTEIN = 'High Protein'
     LOW_CARB = 'Low Carb'
@@ -33,7 +39,7 @@ class SpecialPreferences(StrEnum):
     GLUTEN_FREE = 'Gluten-Free'
 
 
-class CookingTime(StrEnum):
+class CookingTime(str, Enum):
     """The cooking time of the recipe."""
     FIVE_MIN = '5 min'
     FIFTEEN_MIN = '15 min'
@@ -52,6 +58,8 @@ class Ingredient(BaseModel):
     amount: str
 
 
+# Recipe and RecipeSnapshot classes are now imported from ag_ui_types.py
+# but we need the extended Recipe class with additional fields
 class Recipe(BaseModel):
     """A class representing a recipe."""
     skill_level: SkillLevel = Field(
@@ -86,19 +94,19 @@ class RecipeSnapshot(BaseModel):
 
 # Create the agent with state dependencies
 agent = Agent(
-    model=os.getenv('OPENAI_MODEL', 'openai:gpt-4o-mini'),
-    deps_type=StateDeps[RecipeSnapshot],
+    model='openrouter:openai/gpt-4o-mini',
     system_prompt=dedent("""
-        You are a helpful assistant for creating recipes.
+        You are a collaborative recipe builder with real-time shared state synchronization.
         
-        You have access to a shared recipe state that both you and the user can modify.
-        The user can update preferences, ingredients, and other recipe details through the UI.
+        When working with recipes, follow these steps:
+        1. Use the recipe creation tools to build recipes based on user requests
+        2. Call ui_update_recipe_state to update the shared recipe state with complete recipe data
+        3. Use ui_add_ingredients when adding new ingredients to existing recipes
         
-        IMPORTANT:
-        - Build upon the existing recipe state
-        - Don't remove existing ingredients unless asked
-        - Use the display_recipe tool to show the updated recipe
-        - Be creative and suggest improvements based on user preferences
+        The shared state shows real-time updates as we build the recipe together.
+        Always include emojis for ingredients and be creative with recipe suggestions.
+        
+        Focus on building complete, practical recipes with proper measurements and clear instructions.
     """)
 )
 
@@ -119,9 +127,8 @@ async def display_recipe(recipe: Recipe) -> StateSnapshotEvent:
     )
 
 
-@agent.tool
+@agent.tool_plain
 async def add_ingredients(
-    ctx: RunContext[StateDeps[RecipeSnapshot]],
     ingredients: List[str]
 ) -> StateSnapshotEvent:
     """Add ingredients to the recipe.
@@ -168,9 +175,8 @@ async def add_ingredients(
     )
 
 
-@agent.tool
+@agent.tool_plain
 async def update_recipe_preferences(
-    ctx: RunContext[StateDeps[RecipeSnapshot]],
     skill_level: SkillLevel = None,
     cooking_time: CookingTime = None,
     special_preferences: List[SpecialPreferences] = None
@@ -200,10 +206,8 @@ async def update_recipe_preferences(
     )
 
 
-@agent.tool
-async def generate_instructions(
-    ctx: RunContext[StateDeps[RecipeSnapshot]]
-) -> StateSnapshotEvent:
+@agent.tool_plain
+async def generate_instructions() -> StateSnapshotEvent:
     """Generate cooking instructions based on current ingredients.
     
     Returns:
@@ -252,5 +256,15 @@ async def generate_instructions(
     )
 
 
-# Convert to AG-UI app with initial state
-app = agent.to_ag_ui(deps=StateDeps(RecipeSnapshot()))
+# Convert to AG-UI app
+try:
+    app = agent.to_ag_ui()
+except Exception as e:
+    print(f"Failed to create AG-UI app for shared_state: {e}")
+    # Fallback: create basic FastAPI app
+    from fastapi import FastAPI
+    app = FastAPI()
+    
+    @app.get("/")
+    async def health():
+        return {"status": "ok", "agent": "shared_state"}

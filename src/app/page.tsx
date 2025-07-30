@@ -4,6 +4,11 @@ import { useState, useEffect } from "react";
 import ChatWindow from "./_components/chat/ChatWindow";
 import Sidebar from "./_components/sidebar/Sidebar";
 import AgentChat from "./_components/agents/AgentChat";
+import ToolBasedGenerativeUI from "./_components/agents/ToolBasedGenerativeUI";
+import HumanInTheLoopAgent from "./_components/agents/HumanInTheLoopAgent";
+import SharedStateAgent from "./_components/agents/SharedStateAgent";
+import AgenticGenerativeUI from "./_components/agents/AgenticGenerativeUI";
+import PredictiveStateUpdates from "./_components/agents/PredictiveStateUpdates";
 import { api } from "~/trpc/react";
 import { FaArrowLeft } from "react-icons/fa";
 
@@ -178,11 +183,53 @@ export default function Home() {
         
         {/* Conditionally render agent chat or normal chat */}
         {selectedAgent ? (
-          <AgentChat
-            agentId={selectedAgent.id}
-            agentName={selectedAgent.name}
-            endpoint={selectedAgent.endpoint || `/api/agents/${selectedAgent.id}`}
-          />
+          (() => {
+            switch (selectedAgent.id) {
+              case "tool_based_generative_ui":
+                return (
+                  <ToolBasedGenerativeUI
+                    agentId={selectedAgent.id}
+                    agentName={selectedAgent.name}
+                  />
+                );
+              case "human_in_the_loop":
+                return (
+                  <HumanInTheLoopAgent
+                    agentId={selectedAgent.id}
+                    agentName={selectedAgent.name}
+                  />
+                );
+              case "shared_state":
+                return (
+                  <SharedStateAgent
+                    agentId={selectedAgent.id}
+                    agentName={selectedAgent.name}
+                  />
+                );
+              case "agentic_generative_ui":
+                return (
+                  <AgenticGenerativeUI
+                    agentId={selectedAgent.id}
+                    agentName={selectedAgent.name}
+                  />
+                );
+              case "predictive_state_updates":
+                return (
+                  <PredictiveStateUpdates
+                    agentId={selectedAgent.id}
+                    agentName={selectedAgent.name}
+                  />
+                );
+              default:
+                return (
+                  <AgentChat
+                    agentId={selectedAgent.id}
+                    agentName={selectedAgent.name}
+                    endpoint={selectedAgent.endpoint || `/api/agents/${selectedAgent.id}`}
+                  />
+                );
+            }
+          })()
         ) : (
           <ChatWindow
             selectedModel={selectedModel}

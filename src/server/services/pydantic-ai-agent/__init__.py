@@ -3,12 +3,23 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from .agents.agentic_chat import app as agentic_chat_app
-from .agents.human_in_the_loop import app as human_in_the_loop_app
-from .agents.agentic_generative_ui import app as agentic_generative_ui_app
-from .agents.tool_based_generative_ui import app as tool_based_generative_ui_app
-from .agents.shared_state import app as shared_state_app
-from .agents.predictive_state_updates import app as predictive_state_updates_app
+# Import all agents with proper error handling
+try:
+    # Try relative imports first (for when used as a package)
+    from .agents.simple_agentic_chat import app as agentic_chat_app
+    from .agents.tool_based_generative_ui import app as tool_based_generative_ui_app
+    from .agents.human_in_the_loop import app as human_in_the_loop_app
+    from .agents.shared_state import app as shared_state_app
+    from .agents.agentic_generative_ui import app as agentic_generative_ui_app
+    from .agents.predictive_state_updates import app as predictive_state_updates_app
+except ImportError:
+    # Fall back to absolute imports (for when run directly)
+    from agents.simple_agentic_chat import app as agentic_chat_app
+    from agents.tool_based_generative_ui import app as tool_based_generative_ui_app
+    from agents.human_in_the_loop import app as human_in_the_loop_app
+    from agents.shared_state import app as shared_state_app
+    from agents.agentic_generative_ui import app as agentic_generative_ui_app
+    from agents.predictive_state_updates import app as predictive_state_updates_app
 
 # Create main FastAPI app
 app = FastAPI(

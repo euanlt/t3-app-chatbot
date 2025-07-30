@@ -1,0 +1,71 @@
+# Development files
+.git
+.github
+.vscode
+.idea
+*.log
+*.md
+.env.local
+.env.development
+
+# Python cache
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.so
+*.egg
+*.egg-info
+dist
+build
+
+# Node modules (Vercel will install these)
+node_modules
+.npm
+.yarn
+
+# Test files
+*.test.*
+*.spec.*
+test/
+tests/
+coverage/
+.coverage
+
+# Documentation
+docs/
+documentation/
+README.md
+CONTRIBUTING.md
+LICENSE
+
+# Development scripts
+scripts/
+*.sh
+
+# Large unnecessary files
+*.mp4
+*.mov
+*.avi
+*.zip
+*.tar.gz
+
+# IDE files
+.DS_Store
+Thumbs.db
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+*.temp
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+
+# Notebooks (if any)
+*.ipynb
+.ipynb_checkpoints/

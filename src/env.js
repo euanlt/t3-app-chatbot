@@ -8,6 +8,7 @@ export const env = createEnv({
    */
   server: {
     NODE_ENV: z.enum(["development", "test", "production"]),
+    DATABASE_URL: z.string().url(),
     OPENROUTER_API_KEY: z.string().optional().default(""),
     LOG_LEVEL: z
       .enum(["ERROR", "WARN", "INFO", "DEBUG", "TRACE"])
@@ -41,6 +42,7 @@ export const env = createEnv({
    */
   runtimeEnv: {
     NODE_ENV: process.env.NODE_ENV,
+    DATABASE_URL: process.env.DATABASE_URL,
     OPENROUTER_API_KEY: process.env.OPENROUTER_API_KEY,
     LOG_LEVEL: process.env.LOG_LEVEL,
     UPLOAD_DIR: process.env.UPLOAD_DIR,

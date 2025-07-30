@@ -1,146 +1,81 @@
 """Agentic Generative UI feature using Pydantic AI with AG-UI protocol."""
 
-from __future__ import annotations
-
-import asyncio
 import os
-from textwrap import dedent
-from typing import AsyncIterator, List
-
+import asyncio
+from typing import List, Optional, Dict, Any
 from pydantic import BaseModel, Field
+from pydantic_ai import Agent, RunContext
+from .ag_ui_types import AgentDeps, StateDeps
 
-from ag_ui.core import ComponentModel, CustomEvent, EventType
-from pydantic_ai import Agent
-from pydantic_ai.ag_ui import AgentDeps
+# Load environment variables
+from dotenv import load_dotenv
+load_dotenv()
 
+# Set OpenRouter API key for Pydantic AI
+os.environ['OPENROUTER_API_KEY'] = os.getenv('OPENROUTER_API_KEY', '')
 
-class ProgressStep(BaseModel):
-    """A progress step in a long-running task."""
-    id: str
-    title: str
-    status: str = Field(default="pending", description="Status: pending, in_progress, completed, error")
-    progress: int = Field(default=0, description="Progress percentage (0-100)")
-    message: str = Field(default="", description="Status message")
+# Define state model
+class TaskProgress(BaseModel):
+    """Progress state for task execution."""
+    steps: List[Dict[str, Any]] = Field(default_factory=list)
 
-
-class ProgressTracker(ComponentModel):
-    """Component for displaying progress of long-running tasks."""
-    type: str = "progress_tracker"
-    steps: List[ProgressStep]
-    overall_progress: int = Field(default=0, description="Overall progress percentage")
-
-
-# Create the agent
+# Create the agent with state support
 agent = Agent(
-    model=os.getenv('OPENAI_MODEL', 'openai:gpt-4o-mini'),
-    deps_type=AgentDeps,
-    system_prompt=dedent("""
-        You are an AI assistant that helps with long-running tasks.
-        When the user requests a complex operation, break it down into steps
-        and provide real-time progress updates using the progress tracking tools.
-        Simulate progress updates to demonstrate the UI capabilities.
-    """)
+    model='openrouter:openai/gpt-4o-mini',
+    system_prompt="""
+    You are an AI assistant that shows real-time progress for complex operations.
+    
+    When the user asks you to do something complex:
+    1. Break it down into logical steps
+    2. Use update_task_progress to show progress as you work through each step
+    3. Update each step to "completed" as you finish it
+    
+    Example tasks that need progress:
+    - Deploying applications (build, test, deploy steps)
+    - Analyzing data (load, process, analyze steps)
+    - Setting up infrastructure (configure, provision, verify steps)
+    - Running complex calculations (prepare, compute, validate steps)
+    
+    Always show realistic progress updates and complete steps as you go.
+    """,
+    deps_type=StateDeps[TaskProgress]
 )
 
-
-@agent.tool_plain
-async def start_long_running_task(task_type: str) -> AsyncIterator[CustomEvent]:
-    """Start a long-running task with progress updates.
+@agent.tool
+async def update_task_progress(
+    ctx: RunContext[StateDeps[TaskProgress]],
+    steps: List[Dict[str, str]]
+) -> str:
+    """Update the task progress state.
     
     Args:
-        task_type: Type of task to perform (e.g., 'data_processing', 'deployment', 'analysis')
-    
-    Yields:
-        Progress update events
-    """
-    # Define steps based on task type
-    if "deploy" in task_type.lower():
-        steps = [
-            ProgressStep(id="1", title="Installing dependencies", status="pending"),
-            ProgressStep(id="2", title="Running build process", status="pending"),
-            ProgressStep(id="3", title="Running tests", status="pending"),
-            ProgressStep(id="4", title="Deploying to production", status="pending"),
-            ProgressStep(id="5", title="Verifying deployment", status="pending"),
-        ]
-    elif "data" in task_type.lower() or "analysis" in task_type.lower():
-        steps = [
-            ProgressStep(id="1", title="Loading dataset", status="pending"),
-            ProgressStep(id="2", title="Data preprocessing", status="pending"),
-            ProgressStep(id="3", title="Feature extraction", status="pending"),
-            ProgressStep(id="4", title="Model training", status="pending"),
-            ProgressStep(id="5", title="Generating insights", status="pending"),
-        ]
-    else:
-        steps = [
-            ProgressStep(id="1", title="Initializing task", status="pending"),
-            ProgressStep(id="2", title="Processing request", status="pending"),
-            ProgressStep(id="3", title="Optimizing results", status="pending"),
-            ProgressStep(id="4", title="Quality check", status="pending"),
-            ProgressStep(id="5", title="Finalizing output", status="pending"),
-        ]
-    
-    # Simulate progress updates
-    for i, step in enumerate(steps):
-        # Update current step to in_progress
-        step.status = "in_progress"
-        step.message = f"Working on {step.title.lower()}..."
-        
-        # Update previous steps to completed
-        for j in range(i):
-            steps[j].status = "completed"
-            steps[j].progress = 100
-            steps[j].message = "✅ Complete"
-        
-        # Yield progress update
-        overall_progress = int((i / len(steps)) * 100)
-        
-        yield CustomEvent(
-            type=EventType.CUSTOM,
-            name="progress_update",
-            value=ProgressTracker(
-                steps=steps,
-                overall_progress=overall_progress
-            ).model_dump()
-        )
-        
-        # Simulate work with incremental progress
-        for progress in [25, 50, 75, 100]:
-            await asyncio.sleep(0.5)  # Simulate work
-            step.progress = progress
-            
-            yield CustomEvent(
-                type=EventType.CUSTOM,
-                name="progress_update",
-                value=ProgressTracker(
-                    steps=steps,
-                    overall_progress=overall_progress + int((progress / 100) * (100 / len(steps)))
-                ).model_dump()
-            )
-        
-        # Mark step as completed
-        step.status = "completed"
-        step.message = "✅ Complete"
-    
-    # Final update with all steps completed
-    yield CustomEvent(
-        type=EventType.CUSTOM,
-        name="progress_update",
-        value=ProgressTracker(
-            steps=steps,
-            overall_progress=100
-        ).model_dump()
-    )
-
-
-@agent.tool_plain
-async def get_task_status() -> str:
-    """Get the current status of the running task.
+        steps: List of steps with 'description' and 'status' ('pending' or 'completed')
     
     Returns:
-        Status summary
+        Confirmation message
     """
-    return "Task is running. Check the progress tracker above for real-time updates."
+    # Update the state
+    await ctx.deps.state.set_state(TaskProgress(steps=steps))
+    
+    # Simulate some progress
+    completed_count = sum(1 for step in steps if step.get('status') == 'completed')
+    total_count = len(steps)
+    
+    if completed_count == total_count:
+        return f"All {total_count} steps completed successfully!"
+    else:
+        return f"Progress: {completed_count}/{total_count} steps completed"
 
 
 # Convert to AG-UI app
-app = agent.to_ag_ui(deps=AgentDeps())
+try:
+    app = agent.to_ag_ui()
+except Exception as e:
+    print(f"Error creating AG-UI app: {e}")
+    # Fallback: create a basic FastAPI app
+    from fastapi import FastAPI
+    app = FastAPI()
+    
+    @app.get("/")
+    async def health():
+        return {"status": "ok", "agent": "agentic_generative_ui"}

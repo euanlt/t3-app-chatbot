@@ -1,317 +1,218 @@
-"""Tool Based Generative UI feature using Pydantic AI with AG-UI protocol."""
-
-from __future__ import annotations
+"""Tool Based Generative UI agent - creates haikus, recipes, and code snippets."""
 
 import os
 import random
-from textwrap import dedent
 from typing import List, Optional
-
 from pydantic import BaseModel, Field
-
-from ag_ui.core import ComponentModel, CustomEvent, EventType
 from pydantic_ai import Agent
-from pydantic_ai.ag_ui import AgentDeps
 
+# Load environment variables
+from dotenv import load_dotenv
+load_dotenv()
 
-class HaikuContent(ComponentModel):
-    """A haiku poem with metadata."""
-    type: str = "haiku"
-    title: str
-    lines: List[str] = Field(description="Three lines of the haiku")
-    theme: str
-    mood: str
-    syllables: List[int] = Field(description="Syllable count for each line")
+# Set OpenRouter API key for Pydantic AI
+os.environ['OPENROUTER_API_KEY'] = os.getenv('OPENROUTER_API_KEY', '')
 
-
-class RecipeContent(ComponentModel):
-    """A recipe with ingredients and instructions."""
-    type: str = "recipe"
-    title: str
-    description: str
-    prep_time: str
-    cook_time: str
-    servings: int
-    ingredients: List[str]
-    instructions: List[str]
-    difficulty: str = Field(default="medium", description="easy, medium, hard")
-
-
-class CodeSnippet(ComponentModel):
-    """A code snippet with syntax highlighting."""
-    type: str = "code"
-    title: str
-    language: str
-    code: str
-    description: str
-    concepts: List[str] = Field(default_factory=list)
-
+# Data models are now handled by the frontend React components
+# Tools return simple strings and the frontend handles the rich UI display
 
 # Create the agent
 agent = Agent(
-    model=os.getenv('OPENAI_MODEL', 'openai:gpt-4o-mini'),
-    deps_type=AgentDeps,
-    system_prompt=dedent("""
-        You are a creative AI assistant that generates beautiful, structured content.
-        When asked, you can create haikus, recipes, code snippets, and other formatted content.
-        Use the appropriate tools to generate richly formatted outputs.
-    """)
+    model='openrouter:openai/gpt-4o-mini',
+    system_prompt="""
+    You are a creative AI assistant that generates beautiful content including haikus, recipes, and code snippets.
+    
+    When users ask you to create content, follow these steps:
+    1. Use the appropriate creation tool:
+       - create_haiku(theme): Creates a haiku poem
+       - create_recipe(cuisine, dietary): Creates a cooking recipe  
+       - create_code_snippet(language, purpose): Creates a code snippet
+    
+    2. After the tool returns content, call the corresponding UI display tool to show it in the interface:
+       - ui_display_haiku: Pass title, lines (as array), and theme
+       - ui_display_recipe: Pass name, ingredients (as array), steps (as array), prep_time, and servings
+       - ui_display_code_snippet: Pass title, language, code, and explanation
+    
+    Always call the UI display tool after generating content to show it in the rich UI format.
+    Be artistic and thoughtful in your creations.
+    """
 )
 
-
 @agent.tool_plain
-async def generate_haiku(theme: Optional[str] = None) -> List[CustomEvent]:
-    """Generate a beautiful haiku poem.
+async def create_haiku(theme: Optional[str] = None) -> dict:
+    """Generate a beautiful haiku poem and display it in the UI.
     
     Args:
         theme: Optional theme for the haiku (e.g., 'nature', 'technology', 'love')
     
     Returns:
-        Formatted haiku component
+        A dict containing the haiku data (title, lines, theme) that will be rendered in the UI
     """
-    # Generate haiku based on theme
+    themes = ['nature', 'technology', 'seasons', 'love', 'wisdom', 'time']
     if not theme:
-        theme = random.choice(['nature', 'technology', 'seasons', 'emotions'])
+        theme = random.choice(themes)
     
-    haikus = {
-        'nature': HaikuContent(
-            title="Mountain Serenity",
-            lines=[
-                "Ancient mountains stand",
-                "Mist dances through silent pines",
-                "Peace in morning light"
-            ],
-            theme=theme,
-            mood="peaceful",
-            syllables=[5, 7, 5]
-        ),
-        'technology': HaikuContent(
-            title="Digital Dreams",
-            lines=[
-                "Code flows like water",
-                "Pixels paint electric dreams",
-                "Future births in light"
-            ],
-            theme=theme,
-            mood="innovative",
-            syllables=[5, 7, 5]
-        ),
-        'seasons': HaikuContent(
-            title="Autumn's Embrace",
-            lines=[
-                "Leaves fall gently down",
-                "Golden carpet on the path",
-                "Winter whispers near"
-            ],
-            theme=theme,
-            mood="nostalgic",
-            syllables=[5, 7, 5]
-        ),
-        'emotions': HaikuContent(
-            title="Heart's Journey",
-            lines=[
-                "Joy blooms in the heart",
-                "Through storms and sunshine it grows",
-                "Love's eternal spring"
-            ],
-            theme=theme,
-            mood="uplifting",
-            syllables=[5, 7, 5]
-        )
-    }
-    
-    haiku = haikus.get(theme, haikus['nature'])
-    
-    return [
-        CustomEvent(
-            type=EventType.CUSTOM,
-            name="generated_content",
-            value=haiku.model_dump()
-        )
-    ]
-
-
-@agent.tool_plain
-async def generate_recipe(cuisine: str = "italian") -> List[CustomEvent]:
-    """Generate a delicious recipe.
-    
-    Args:
-        cuisine: Type of cuisine (italian, asian, mexican, etc.)
-    
-    Returns:
-        Formatted recipe component
-    """
-    recipes = {
-        'italian': RecipeContent(
-            title="Classic Margherita Pizza",
-            description="A traditional Italian pizza with fresh basil and mozzarella",
-            prep_time="30 minutes",
-            cook_time="15 minutes",
-            servings=4,
-            ingredients=[
-                "2 cups all-purpose flour",
-                "1 tsp active dry yeast",
-                "3/4 cup warm water",
-                "2 tbsp olive oil",
-                "1 tsp salt",
-                "1 cup tomato sauce",
-                "8 oz fresh mozzarella",
-                "Fresh basil leaves",
-                "Extra virgin olive oil for drizzling"
-            ],
-            instructions=[
-                "Mix yeast with warm water and let stand for 5 minutes",
-                "Combine flour and salt, then add yeast mixture and olive oil",
-                "Knead dough for 8-10 minutes until smooth",
-                "Let rise in a warm place for 1 hour",
-                "Preheat oven to 475°F (245°C)",
-                "Roll out dough and top with sauce, cheese, and basil",
-                "Bake for 12-15 minutes until crust is golden",
-                "Drizzle with olive oil before serving"
-            ],
-            difficulty="medium"
-        ),
-        'asian': RecipeContent(
-            title="Quick Vegetable Stir-Fry",
-            description="A colorful and healthy Asian-inspired stir-fry",
-            prep_time="15 minutes",
-            cook_time="10 minutes",
-            servings=4,
-            ingredients=[
-                "2 tbsp vegetable oil",
-                "1 bell pepper, sliced",
-                "1 cup broccoli florets",
-                "1 carrot, julienned",
-                "2 cloves garlic, minced",
-                "2 tbsp soy sauce",
-                "1 tbsp oyster sauce",
-                "1 tsp sesame oil",
-                "1 tsp cornstarch",
-                "Sesame seeds for garnish"
-            ],
-            instructions=[
-                "Heat oil in a wok or large pan over high heat",
-                "Add garlic and stir-fry for 30 seconds",
-                "Add harder vegetables (broccoli, carrot) first",
-                "Stir-fry for 2-3 minutes",
-                "Add bell pepper and continue cooking",
-                "Mix sauces with cornstarch and 2 tbsp water",
-                "Pour sauce over vegetables and toss",
-                "Cook until sauce thickens, about 1 minute",
-                "Garnish with sesame seeds and serve"
-            ],
-            difficulty="easy"
-        )
-    }
-    
-    recipe = recipes.get(cuisine.lower(), recipes['italian'])
-    
-    return [
-        CustomEvent(
-            type=EventType.CUSTOM,
-            name="generated_content",
-            value=recipe.model_dump()
-        )
-    ]
-
-
-@agent.tool_plain
-async def generate_code_snippet(
-    purpose: str = "hello_world",
-    language: str = "python"
-) -> List[CustomEvent]:
-    """Generate a code snippet.
-    
-    Args:
-        purpose: What the code should do (hello_world, fibonacci, api_request, etc.)
-        language: Programming language (python, javascript, typescript, etc.)
-    
-    Returns:
-        Formatted code snippet component
-    """
-    snippets = {
-        'hello_world': {
-            'python': CodeSnippet(
-                title="Hello World in Python",
-                language="python",
-                code='''def greet(name: str = "World") -> str:
-    """Generate a personalized greeting."""
-    return f"Hello, {name}! 👋"
-
-if __name__ == "__main__":
-    print(greet())
-    print(greet("Python Developer"))''',
-                description="A simple greeting function with type hints",
-                concepts=["functions", "type hints", "f-strings", "default parameters"]
-            ),
-            'javascript': CodeSnippet(
-                title="Hello World in JavaScript",
-                language="javascript",
-                code='''function greet(name = "World") {
-    return `Hello, ${name}! 👋`;
-}
-
-// Modern arrow function version
-const modernGreet = (name = "World") => `Hello, ${name}! 👋`;
-
-console.log(greet());
-console.log(modernGreet("JavaScript Developer"));''',
-                description="Greeting functions using both traditional and arrow syntax",
-                concepts=["functions", "arrow functions", "template literals", "default parameters"]
-            )
+    # Generate different haikus based on theme
+    haiku_variations = {
+        'nature': {
+            'title': 'Nature\'s Whisper',
+            'lines': [
+                'Morning dew glistens',
+                'On petals soft as silk dreams',
+                'Spring awakens earth'
+            ]
         },
-        'fibonacci': {
-            'python': CodeSnippet(
-                title="Fibonacci Sequence Generator",
-                language="python",
-                code='''def fibonacci(n: int) -> list[int]:
-    """Generate Fibonacci sequence up to n terms."""
-    if n <= 0:
-        return []
-    elif n == 1:
-        return [0]
-    
-    sequence = [0, 1]
-    for i in range(2, n):
-        sequence.append(sequence[-1] + sequence[-2])
-    
-    return sequence
-
-# Generator version for memory efficiency
-def fibonacci_generator(n: int):
-    """Generate Fibonacci numbers one at a time."""
-    a, b = 0, 1
-    for _ in range(n):
-        yield a
-        a, b = b, a + b
-
-# Example usage
-print(f"First 10 Fibonacci numbers: {fibonacci(10)}")
-print(f"Using generator: {list(fibonacci_generator(10))}")''',
-                description="Fibonacci sequence implementation with both list and generator approaches",
-                concepts=["loops", "generators", "yield", "list comprehension", "type hints"]
-            )
+        'technology': {
+            'title': 'Digital Dreams',
+            'lines': [
+                'Code flows like water',
+                'Binary thoughts crystallize',
+                'Silicon wisdom'
+            ]
+        },
+        'love': {
+            'title': 'Heart\'s Echo',
+            'lines': [
+                'Two hearts beat as one',
+                'In rhythm with the cosmos',
+                'Love transcends all time'
+            ]
         }
     }
     
-    snippet_key = purpose.lower()
-    if snippet_key not in snippets:
-        snippet_key = 'hello_world'
+    # Use theme-specific haiku or default
+    haiku_data = haiku_variations.get(theme, {
+        'title': f'Thoughts on {theme.title()}',
+        'lines': [
+            'Moments drift like clouds',
+            'Each breath a small infinity',
+            'Life unfolds in verse'
+        ]
+    })
     
-    language_key = language.lower()
-    if language_key not in snippets[snippet_key]:
-        language_key = 'python'
+    haiku_data['theme'] = theme
     
-    snippet = snippets[snippet_key][language_key]
-    
-    return [
-        CustomEvent(
-            type=EventType.CUSTOM,
-            name="generated_content",
-            value=snippet.model_dump()
-        )
-    ]
+    # Return the haiku data - CopilotKit will render this using the matching frontend action
+    return haiku_data
 
+@agent.tool_plain
+async def create_recipe(cuisine: Optional[str] = None, dietary: Optional[str] = None) -> dict:
+    """Generate a cooking recipe and display it in the UI.
+    
+    Args:
+        cuisine: Type of cuisine (e.g., 'Italian', 'Japanese', 'Mexican')
+        dietary: Dietary restrictions (e.g., 'vegetarian', 'vegan', 'gluten-free')
+    
+    Returns:
+        RecipeContent object with name, ingredients, steps, prep_time, and servings
+    """
+    cuisine = cuisine or "Italian"
+    dietary = dietary or "regular"
+    
+    # Generate different recipes based on cuisine
+    recipe_variations = {
+        'italian': {
+            'name': 'Classic Pasta Marinara',
+            'ingredients': [
+                '2 cups penne pasta',
+                '1 cup marinara sauce',
+                '1/2 cup parmesan cheese',
+                'Fresh basil leaves',
+                '2 tbsp olive oil',
+                '2 cloves garlic'
+            ],
+            'steps': [
+                'Boil salted water and cook pasta al dente',
+                'Heat olive oil and sauté minced garlic',
+                'Add marinara sauce and simmer',
+                'Toss pasta with sauce',
+                'Top with parmesan and fresh basil'
+            ],
+            'prep_time': '20 minutes',
+            'servings': 4
+        },
+        'japanese': {
+            'name': 'Simple Chicken Teriyaki',
+            'ingredients': [
+                '2 chicken breasts',
+                '1/4 cup soy sauce',
+                '2 tbsp mirin',
+                '1 tbsp sugar',
+                '1 tsp sesame oil',
+                'Green onions for garnish'
+            ],
+            'steps': [
+                'Cut chicken into bite-sized pieces',
+                'Mix soy sauce, mirin, and sugar for sauce',
+                'Cook chicken in sesame oil until golden',
+                'Add sauce and simmer until glazed',
+                'Garnish with chopped green onions'
+            ],
+            'prep_time': '15 minutes',
+            'servings': 2
+        }
+    }
+    
+    # Use cuisine-specific recipe or default to Italian
+    recipe_data = recipe_variations.get(cuisine.lower(), recipe_variations['italian'])
+    
+    return recipe_data
+
+@agent.tool_plain
+async def create_code_snippet(language: str, purpose: str) -> dict:
+    """Generate a code snippet and display it in the UI.
+    
+    Args:
+        language: Programming language (e.g., 'Python', 'JavaScript', 'TypeScript')
+        purpose: What the code should do
+    
+    Returns:
+        CodeSnippet object with language, code, explanation, and title
+    """
+    # Generate different code snippets based on language and purpose
+    if language.lower() == 'python':
+        if 'hello' in purpose.lower():
+            code = f'# {purpose}\ndef greet(name="World"):\n    return f"Hello, {{name}}!"\n\nprint(greet())'
+            title = f"Python Hello World - {purpose}"
+            explanation = "A simple Python function that greets users with customizable names."
+        else:
+            code = f'# {purpose}\ndef example_function():\n    """{purpose}"""\n    result = "This demonstrates {purpose}"\n    return result\n\nprint(example_function())'
+            title = f"Python Function - {purpose}"
+            explanation = f"A Python function demonstrating {purpose} with proper documentation and return value."
+    elif language.lower() in ['javascript', 'js']:
+        if 'hello' in purpose.lower():
+            code = f'// {purpose}\nfunction greet(name = "World") {{\n    return `Hello, ${{name}}!`;\n}}\n\nconsole.log(greet());'
+            title = f"JavaScript Hello World - {purpose}"
+            explanation = "A JavaScript function using template literals for dynamic greetings."
+        else:
+            code = f'// {purpose}\nfunction exampleFunction() {{\n    // {purpose}\n    const result = "This demonstrates {purpose}";\n    return result;\n}}\n\nconsole.log(exampleFunction());'
+            title = f"JavaScript Function - {purpose}"
+            explanation = f"A JavaScript function demonstrating {purpose} with modern ES6 syntax."
+    else:
+        code = f"// {purpose} in {language}\nfunction example() {{\n    return 'Example for {purpose}';\n}}"
+        title = f"{language} Example - {purpose}"
+        explanation = f"A basic {language} function template for {purpose}."
+    
+    return {
+        "language": language,
+        "code": code,
+        "explanation": explanation,
+        "title": title
+    }
+
+# Note: The frontend CopilotKit actions with matching names (create_haiku, create_recipe, create_code_snippet)
+# will automatically render the data returned by these tools using their render functions.
+# This follows the AG-UI protocol pattern where tool calls directly trigger UI rendering.
 
 # Convert to AG-UI app
-app = agent.to_ag_ui(deps=AgentDeps())
+try:
+    app = agent.to_ag_ui()
+except Exception as e:
+    print(f"Error creating AG-UI app: {e}")
+    # Fallback: create a basic FastAPI app
+    from fastapi import FastAPI
+    app = FastAPI()
+    
+    @app.get("/")
+    async def health():
+        return {"status": "ok", "agent": "tool_based_generative_ui"}

@@ -11,7 +11,6 @@ import pytz
 from pydantic import BaseModel
 
 from pydantic_ai import Agent
-from pydantic_ai.messages import ModelMessage
 
 # Create the agent
 agent = Agent(

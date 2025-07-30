@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useState } from "react";
 import { CopilotKit } from "@copilotkit/react-core";
 import { CopilotChat } from "@copilotkit/react-ui";
 import "@copilotkit/react-ui/styles.css";
@@ -12,74 +12,51 @@ interface AgentChatProps {
   endpoint: string;
 }
 
-// Client-side action handler for background color changes
-function BackgroundColorHandler() {
+// Main chat component with background color support (matching dojo app pattern)
+function Chat({ agentId, agentName }: { agentId: string; agentName: string }) {
+  const [background, setBackground] = useState<string>("--copilot-kit-background-color");
+  
   useCopilotAction({
-    name: "set_background_color",
-    description: "Change the background color of the application",
+    name: "change_background",
+    description: "Change the background color of the chat. Can be anything that the CSS background attribute accepts. Regular colors, linear or radial gradients etc.",
     parameters: [
       {
-        name: "color",
+        name: "background",
         type: "string",
-        description: "The color to set (name or hex code)"
+        description: "The background. Prefer gradients."
       }
     ],
-    handler: ({ color }) => {
-      // Apply the background color
-      document.body.style.backgroundColor = color;
-      
-      // Show visual feedback
-      const notification = document.createElement("div");
-      notification.className = "fixed top-4 right-4 bg-blue-100 border-blue-300 border p-4 rounded-lg shadow-lg z-50";
-      notification.innerHTML = `🎨 Background color changed to: <span class="font-semibold">${color}</span>`;
-      document.body.appendChild(notification);
-      
-      // Remove notification after 3 seconds
-      setTimeout(() => {
-        notification.remove();
-      }, 3000);
+    handler: ({ background }) => {
+      setBackground(background);
+      return {
+        status: "success",
+        message: `Background changed to ${background}`,
+      };
     }
   });
-  
-  return null;
+
+  return (
+    <div className="flex justify-center items-center h-full w-full" style={{ background }}>
+      <div className="w-4/5 h-4/5 rounded-lg">
+        <CopilotChat
+          className="h-full rounded-2xl"
+          labels={{
+            title: agentName,
+            initial: `Hello! I'm ${agentName}. ${getAgentGreeting(agentId)}`
+          }}
+        />
+      </div>
+    </div>
+  );
 }
 
 export default function AgentChat({ agentId, agentName }: AgentChatProps) {
-  // Clean up background color on unmount
-  useEffect(() => {
-    return () => {
-      document.body.style.backgroundColor = "";
-    };
-  }, []);
-
   return (
     <CopilotKit 
       runtimeUrl="/api/copilotkit"
-      headers={{
-        "x-agent-id": agentId
-      }}
+      agent={agentId}
     >
-      <BackgroundColorHandler />
-      <div className="flex h-full flex-col">
-        <div className="border-b border-primary bg-secondary p-4">
-          <h2 className="text-lg font-semibold text-primary">
-            {agentName} - Powered by Pydantic AI
-          </h2>
-          <p className="text-sm text-secondary">
-            {getAgentDescription(agentId)}
-          </p>
-        </div>
-        
-        <div className="flex-1 overflow-hidden">
-          <CopilotChat
-            labels={{
-              title: agentName,
-              initial: `Hello! I'm ${agentName}. ${getAgentGreeting(agentId)}`
-            }}
-            className="h-full"
-          />
-        </div>
-      </div>
+      <Chat agentId={agentId} agentName={agentName} />
     </CopilotKit>
   );
 }

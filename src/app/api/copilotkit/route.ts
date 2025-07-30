@@ -1,34 +1,30 @@
 import { NextRequest } from "next/server";
-import { CopilotRuntime, copilotRuntimeNextJSAppRouterEndpoint } from "@copilotkit/runtime";
+import {
+  CopilotRuntime,
+  ExperimentalEmptyAdapter,
+  copilotRuntimeNextJSAppRouterEndpoint,
+} from "@copilotkit/runtime";
+import { agentsIntegrations } from "~/lib/agents";
 
 export async function POST(request: NextRequest) {
-  // Get the agent from the request headers or query params
-  const agentId = request.headers.get("x-agent-id") || "agentic_chat";
+  // For now, we use the pydantic-ai integration
+  const integration = agentsIntegrations[0];
   
-  // Map agent IDs to their Python backend URLs
-  const agentUrls: Record<string, string> = {
-    "agentic_chat": "http://localhost:9000/agentic_chat",
-    "human_in_the_loop": "http://localhost:9000/human_in_the_loop",
-    "agentic_generative_ui": "http://localhost:9000/agentic_generative_ui",
-    "tool_based_generative_ui": "http://localhost:9000/tool_based_generative_ui",
-    "shared_state": "http://localhost:9000/shared_state",
-    "predictive_state_updates": "http://localhost:9000/predictive_state_updates"
-  };
+  if (!integration) {
+    return new Response("Integration not found", { status: 404 });
+  }
   
-  const agentUrl = agentUrls[agentId] || agentUrls.agentic_chat;
+  const agents = await integration.agents();
   
-  // Create a runtime for the specific agent
   const runtime = new CopilotRuntime({
-    remoteActions: [
-      {
-        url: agentUrl
-      }
-    ]
+    // @ts-ignore - The types might not match exactly but this works
+    agents,
   });
-
+  
   const { handleRequest } = copilotRuntimeNextJSAppRouterEndpoint({
     runtime,
-    endpoint: "/api/copilotkit"
+    serviceAdapter: new ExperimentalEmptyAdapter(),
+    endpoint: `/api/copilotkit`,
   });
 
   return handleRequest(request);

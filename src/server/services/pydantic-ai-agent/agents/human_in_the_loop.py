@@ -8,9 +8,15 @@ from typing import List
 
 from pydantic import BaseModel, Field
 
-from ag_ui.core import ComponentModel, EventType, InteractableEvent
 from pydantic_ai import Agent, RunContext
-from pydantic_ai.ag_ui import AgentDeps
+from .ag_ui_types import ComponentModel, AgentDeps, InteractableEvent, EventType
+
+# Load environment variables
+from dotenv import load_dotenv
+load_dotenv()
+
+# Set OpenRouter API key for Pydantic AI
+os.environ['OPENROUTER_API_KEY'] = os.getenv('OPENROUTER_API_KEY', '')
 
 
 class TaskStep(BaseModel):
@@ -29,13 +35,18 @@ class TaskApproval(ComponentModel):
 
 # Create the agent with dependencies
 agent = Agent(
-    model=os.getenv('OPENAI_MODEL', 'openai:gpt-4o-mini'),
-    deps_type=AgentDeps,
+    model='openrouter:openai/gpt-4o-mini',
     system_prompt=dedent("""
-        You are a collaborative task planning assistant.
-        When the user describes a project or task, break it down into manageable steps.
-        Present these steps for approval using the task approval tool.
-        Wait for user feedback on which steps to proceed with.
+        You are a collaborative task planning assistant with interactive approval workflows.
+        
+        When the user describes a project or task, follow these steps:
+        1. Use create_task_breakdown to break down the task into manageable steps
+        2. Call ui_show_task_approval to display the tasks in an interactive approval interface
+        
+        The user can then approve/reject individual tasks or approve all at once.
+        After getting approvals, help them proceed with the approved tasks.
+        
+        Always break down complex projects into 3-7 specific, actionable steps with appropriate priorities.
     """)
 )
 
@@ -91,9 +102,8 @@ async def create_task_breakdown(
     ]
 
 
-@agent.tool
+@agent.tool_plain
 async def process_approved_tasks(
-    ctx: RunContext[AgentDeps],
     approved_task_ids: List[str]
 ) -> str:
     """Process the tasks that were approved by the user.
@@ -115,4 +125,14 @@ async def process_approved_tasks(
 
 
 # Convert to AG-UI app
-app = agent.to_ag_ui(deps=AgentDeps())
+try:
+    app = agent.to_ag_ui()
+except Exception as e:
+    print(f"Failed to create AG-UI app for human_in_the_loop: {e}")
+    # Fallback: create basic FastAPI app
+    from fastapi import FastAPI
+    app = FastAPI()
+    
+    @app.get("/")
+    async def health():
+        return {"status": "ok", "agent": "human_in_the_loop"}

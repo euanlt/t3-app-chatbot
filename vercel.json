@@ -4,5 +4,17 @@
   "installCommand": "npm install",
   "env": {
     "SKIP_ENV_VALIDATION": "1"
-  }
+  },
+  "functions": {
+    "api/python/[...path].py": {
+      "runtime": "@vercel/python@3.0.0",
+      "maxDuration": 60
+    }
+  },
+  "rewrites": [
+    {
+      "source": "/api/agents/:path*",
+      "destination": "/api/python/:path*"
+    }
+  ]
 }
