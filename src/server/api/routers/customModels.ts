@@ -234,8 +234,21 @@ export const customModelsRouter = createTRPCRouter({
 
         const encryptedKey = encrypt(input.apiKey);
         
-        const apiKey = await db.userApiKey.create({
-          data: {
+        // Use upsert to handle the unique constraint
+        const apiKey = await db.userApiKey.upsert({
+          where: {
+            userId_provider_keyName: {
+              userId: input.userId,
+              provider: input.provider,
+              keyName: input.keyName,
+            },
+          },
+          update: {
+            encryptedKey,
+            isActive: true,
+            updatedAt: new Date(),
+          },
+          create: {
             provider: input.provider,
             keyName: input.keyName,
             encryptedKey,

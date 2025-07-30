@@ -28,7 +28,7 @@ interface Agent {
 
 export default function Home() {
   const [selectedModel, setSelectedModel] = useState(
-    "mistralai/mistral-small-3.2-24b-instruct:free",
+    "openai/gpt-4-turbo",
   );
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
   const [currentConversationId, setCurrentConversationId] = useState<
