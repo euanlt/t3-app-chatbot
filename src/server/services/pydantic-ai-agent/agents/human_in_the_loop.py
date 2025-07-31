@@ -9,7 +9,7 @@ from typing import List
 from pydantic import BaseModel, Field
 
 from pydantic_ai import Agent, RunContext
-from .ag_ui_types import ComponentModel, AgentDeps, InteractableEvent, EventType
+from .ag_ui_types import ComponentModel, AgentDeps, InteractableEvent, EventType, CustomEvent
 
 # Load environment variables
 from dotenv import load_dotenv
@@ -40,66 +40,63 @@ agent = Agent(
         You are a collaborative task planning assistant with interactive approval workflows.
         
         When the user describes a project or task, follow these steps:
-        1. Use create_task_breakdown to break down the task into manageable steps
-        2. Call ui_show_task_approval to display the tasks in an interactive approval interface
+        1. Use ui_show_task_approval to break down the task into manageable steps and display them in an interactive approval interface
+        2. The user can then approve/reject individual tasks or approve all at once
         
-        The user can then approve/reject individual tasks or approve all at once.
         After getting approvals, help them proceed with the approved tasks.
         
-        Always break down complex projects into 3-7 specific, actionable steps with appropriate priorities.
+        Always break down complex projects into 3-7 specific, actionable steps.
     """)
 )
 
 
 @agent.tool_plain
-async def create_task_breakdown(
+async def ui_show_task_approval(
     task_description: str,
     num_steps: int = 5
-) -> List[InteractableEvent]:
-    """Create a task breakdown for user approval.
+) -> CustomEvent:
+    """Create a task breakdown for user approval using the React UI component.
     
     Args:
         task_description: Description of the task to break down
         num_steps: Number of steps to create (default: 5)
     
     Returns:
-        Interactive task approval component
+        Custom event that triggers the task approval UI
     """
     # Generate task steps based on the description
     steps = []
     
-    # Simple task generation logic (in a real app, this would be more sophisticated)
+    # Simple task generation logic
     if "website" in task_description.lower():
         steps = [
-            TaskStep(id="1", description="Create wireframes and design mockups", priority="high"),
-            TaskStep(id="2", description="Set up project structure and dependencies", priority="high"),
-            TaskStep(id="3", description="Implement responsive layout", priority="medium"),
-            TaskStep(id="4", description="Add interactive features", priority="medium"),
-            TaskStep(id="5", description="Test and deploy", priority="low"),
+            {"description": "Create wireframes and design mockups", "status": "enabled"},
+            {"description": "Set up project structure and dependencies", "status": "enabled"},
+            {"description": "Implement responsive layout", "status": "enabled"},
+            {"description": "Add interactive features", "status": "enabled"},
+            {"description": "Test and deploy", "status": "enabled"},
         ]
     elif "api" in task_description.lower():
         steps = [
-            TaskStep(id="1", description="Design API endpoints and data models", priority="high"),
-            TaskStep(id="2", description="Set up database schema", priority="high"),
-            TaskStep(id="3", description="Implement authentication", priority="medium"),
-            TaskStep(id="4", description="Add validation and error handling", priority="medium"),
-            TaskStep(id="5", description="Write documentation", priority="low"),
+            {"description": "Design API endpoints and data models", "status": "enabled"},
+            {"description": "Set up database schema", "status": "enabled"},
+            {"description": "Implement authentication", "status": "enabled"},
+            {"description": "Add validation and error handling", "status": "enabled"},
+            {"description": "Write documentation", "status": "enabled"},
         ]
     else:
         # Generic steps
         steps = [
-            TaskStep(id=str(i+1), description=f"Step {i+1}: {task_description[:30]}...", priority="medium")
+            {"description": f"Step {i+1}: {task_description[:50]}...", "status": "enabled"}
             for i in range(num_steps)
         ]
     
-    # Return interactable component
-    return [
-        InteractableEvent(
-            type=EventType.INTERACTABLE,
-            element=TaskApproval(steps=steps[:num_steps]),
-            next_question="Please review these tasks and let me know which ones you'd like to proceed with."
-        )
-    ]
+    # Return custom event that will trigger the React component
+    return CustomEvent(
+        type=EventType.CUSTOM,
+        name="task_approval",
+        value={"steps": steps[:num_steps]}
+    )
 
 
 @agent.tool_plain

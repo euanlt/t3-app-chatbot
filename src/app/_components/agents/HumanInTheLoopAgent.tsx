@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { CopilotKit } from "@copilotkit/react-core";
 import { CopilotChat } from "@copilotkit/react-ui";
 import "@copilotkit/react-ui/styles.css";
@@ -26,8 +26,15 @@ function TaskApprovalWithResponse({
   respond: (response: any) => void;
   status: string;
 }) {
+  console.log("TaskApprovalWithResponse received steps:", JSON.stringify(steps, null, 2));
   const [localSteps, setLocalSteps] = useState<TaskStep[]>(steps);
   const [accepted, setAccepted] = useState<boolean | null>(null);
+  
+  // Update localSteps when steps prop changes
+  useEffect(() => {
+    console.log("Steps prop changed, updating localSteps:", steps);
+    setLocalSteps(steps);
+  }, [steps]);
 
   const handleCheckboxChange = (index: number) => {
     setLocalSteps((prevSteps) =>
@@ -132,9 +139,106 @@ function HumanInTheLoopChat({ agentId, agentName }: { agentId: string; agentName
     }
   });
 
-  // Task approval with renderAndWaitForResponse - matching dojo pattern
+  // Action to handle task approval component from Python agent
   useCopilotAction({
-    name: "generate_task_steps",
+    name: "task_approval",
+    description: "Display task approval UI component",
+    parameters: [
+      {
+        name: "steps",
+        type: "object[]",
+        description: "Array of task steps to approve"
+      }
+    ],
+    renderAndWaitForResponse: ({ args, respond, status }) => {
+      console.log("task_approval called with full args:", JSON.stringify(args, null, 2));
+      
+      // Try different ways to extract steps
+      let steps = [];
+      
+      // Direct steps array
+      if (args?.steps && Array.isArray(args.steps)) {
+        steps = args.steps;
+      }
+      // Check if args itself is the steps array
+      else if (Array.isArray(args)) {
+        steps = args;
+      }
+      // Check for value.steps (CustomEvent format)
+      else if (args?.value?.steps && Array.isArray(args.value.steps)) {
+        steps = args.value.steps;
+      }
+      // Check for element property (AG-UI protocol)
+      else if (args?.element?.steps) {
+        steps = args.element.steps;
+      }
+      // Check for type and steps at root
+      else if (args?.type === "task_approval" && args?.steps) {
+        steps = args.steps;
+      }
+      
+      console.log("Extracted steps:", JSON.stringify(steps, null, 2));
+      
+      if (!steps || steps.length === 0) {
+        return (
+          <div className="flex flex-col gap-4 w-[500px] bg-gray-100 rounded-lg p-8 mb-4">
+            <div className="text-black text-center">
+              <p>No tasks found in data</p>
+              <pre className="text-xs mt-2 p-2 bg-gray-200 rounded text-left overflow-auto max-h-40">
+                {JSON.stringify(args, null, 2)}
+              </pre>
+              <button
+                className="bg-black text-white py-2 px-4 rounded mt-2"
+                onClick={() => respond({ accepted: false })}
+              >
+                Dismiss
+              </button>
+            </div>
+          </div>
+        );
+      }
+
+      // Format steps for the UI component - more robust extraction
+      const formattedSteps = steps.map((step: any, index: number) => {
+        console.log(`Processing step ${index}:`, JSON.stringify(step, null, 2));
+        
+        // Extract description from various possible locations
+        let description = "";
+        
+        if (typeof step === 'string') {
+          description = step;
+        } else if (step && typeof step === 'object') {
+          description = step.description || 
+                       step.text || 
+                       step.task ||
+                       step.step ||
+                       step.title ||
+                       step.name ||
+                       step.content ||
+                       (step.id ? `Task ${step.id}` : `Task ${index + 1}`);
+        }
+        
+        return {
+          description: description || `Task ${index + 1}`,
+          status: "enabled"
+        };
+      });
+
+      console.log("Formatted steps:", formattedSteps);
+
+      return (
+        <TaskApprovalWithResponse
+          steps={formattedSteps}
+          respond={respond}
+          status={status}
+        />
+      );
+    }
+  });
+
+  // Also keep the original action for backward compatibility
+  useCopilotAction({
+    name: "generate_task_steps", 
     description: "Generates a list of steps for the user to perform",
     parameters: [
       {
@@ -154,13 +258,104 @@ function HumanInTheLoopChat({ agentId, agentName }: { agentId: string; agentName
       }
     ],
     renderAndWaitForResponse: ({ args, respond, status }) => {
-      if (!args.steps || args.steps.length === 0) {
-        return null;
+      console.log("HITL renderAndWaitForResponse called with:", { args, status });
+      
+      // Handle different possible data structures
+      let steps = [];
+      if (args?.steps && Array.isArray(args.steps)) {
+        steps = args.steps;
+      } else if (args && Array.isArray(args)) {
+        steps = args;
+      } else if (typeof args === 'object' && args !== null) {
+        // Look for steps in any property
+        for (const key in args) {
+          if (Array.isArray(args[key])) {
+            steps = args[key];
+            break;
+          }
+        }
       }
+      
+      console.log("Processed steps:", steps);
+      
+      if (!steps || steps.length === 0) {
+        console.log("No steps found, raw args:", JSON.stringify(args, null, 2));
+        return (
+          <div className="flex flex-col gap-4 w-[500px] bg-gray-100 rounded-lg p-8 mb-4">
+            <div className="text-black text-center">
+              <p>No steps provided</p>
+              <pre className="text-xs mt-2 p-2 bg-gray-200 rounded text-left">
+                {JSON.stringify(args, null, 2)}
+              </pre>
+              <button
+                className="bg-black text-white py-2 px-4 rounded mt-2"
+                onClick={() => respond({ accepted: false })}
+              >
+                Dismiss
+              </button>
+            </div>
+          </div>
+        );
+      }
+
+      // Convert steps to proper format if needed
+      const formattedSteps = steps.map((step: any, index: number) => {
+        console.log(`Processing step ${index}:`, step, typeof step);
+        
+        if (typeof step === 'string') {
+          return {
+            description: step,
+            status: "enabled"
+          };
+        }
+        
+        if (typeof step === 'object' && step !== null) {
+          // Try to extract description from various possible fields
+          let description = step.description || 
+                           step.text || 
+                           step.step || 
+                           step.instruction ||
+                           step.task ||
+                           step.name ||
+                           step.title;
+          
+          // If no description found, check if it's an array or has a value property
+          if (!description) {
+            if (Array.isArray(step) && step[0]) {
+              description = String(step[0]);
+            } else if (step.value !== undefined) {
+              description = String(step.value);
+            } else {
+              // Last resort: stringify but make it readable
+              const stringified = JSON.stringify(step);
+              if (stringified === '{}') {
+                description = 'Empty step';
+              } else if (stringified.length > 100) {
+                description = 'Complex step object';
+              } else {
+                description = stringified;
+              }
+            }
+          }
+          
+          return {
+            description: String(description || 'Unnamed step'),
+            status: step.status || "enabled"
+          };
+        }
+        
+        // Fallback for other types
+        return {
+          description: String(step),
+          status: "enabled"
+        };
+      });
+
+      console.log("Final formattedSteps being passed to TaskApprovalWithResponse:", JSON.stringify(formattedSteps, null, 2));
 
       return (
         <TaskApprovalWithResponse
-          steps={args.steps}
+          steps={formattedSteps}
           respond={respond}
           status={status}
         />

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { CopilotKit, useCoAgent, useCopilotChat } from "@copilotkit/react-core";
+import { CopilotKit, useCoAgent, useCopilotChat, useCopilotAction } from "@copilotkit/react-core";
 import { CopilotSidebar } from "@copilotkit/react-ui";
 import "@copilotkit/react-ui/styles.css";
 import { Role, TextMessage } from "@copilotkit/runtime-client-gql";
@@ -197,6 +197,105 @@ const INITIAL_STATE: RecipeAgentState = {
   }
 };
 
+// Function to extract recipe information from agent messages
+function extractRecipeFromMessage(content: string): Recipe | null {
+  try {
+    // Look for recipe patterns in the message
+    const titleMatch = content.match(/(?:recipe|title):\s*([^\n]+)/i) || 
+                      content.match(/^([A-Z][^.\n]+(?:recipe|pasta|chicken|soup|salad|cake|bread))/i);
+    
+    // Extract ingredients (look for lines with measurements)
+    const ingredientMatches = content.match(/(?:ingredients?:?\s*\n?)((?:[-•*]\s*)?(?:\d+(?:\/\d+)?\s*(?:cups?|tbsp|tsp|oz|lbs?|pounds?|grams?|kg|ml|l|liters?|cloves?|pieces?|slices?)\s+[^\n]+\n?)*)/i);
+    
+    // Extract instructions (look for numbered or bulleted steps)
+    const instructionMatches = content.match(/(?:instructions?|steps?|directions?:?\s*\n?)((?:(?:\d+\.?|\d+\)|-|•|●|\*)\s*[^\n]+\n?)*)/i);
+    
+    // Extract skill level
+    const skillMatch = content.match(/(?:skill level|difficulty):?\s*(beginner|intermediate|advanced)/i);
+    
+    // Extract cooking time
+    const timeMatch = content.match(/(?:cooking time|prep time|total time):?\s*(\d+(?:-\d+)?\s*(?:min|minutes?|hrs?|hours?))/i);
+    
+    if (!titleMatch && !ingredientMatches && !instructionMatches) {
+      return null; // No recipe found
+    }
+    
+    const title = titleMatch ? titleMatch[1].trim() : "New Recipe";
+    
+    // Process ingredients
+    const ingredients = [];
+    if (ingredientMatches && ingredientMatches[1]) {
+      const ingredientLines = ingredientMatches[1]
+        .split('\n')
+        .filter(line => line.trim())
+        .map(line => line.replace(/^[-•*]\s*/, '').trim());
+      
+      for (const ing of ingredientLines) {
+        if (ing) {
+          const parts = ing.split(' ');
+          let amount = "to taste";
+          let name = ing;
+          
+          if (parts.length >= 3) {
+            amount = `${parts[0]} ${parts[1]}`;
+            name = parts.slice(2).join(' ');
+          } else if (parts.length === 2) {
+            amount = parts[0];
+            name = parts[1];
+          }
+          
+          // Choose appropriate emoji
+          let icon = '🥘';
+          if (name.toLowerCase().includes('tomato') || name.toLowerCase().includes('pepper')) icon = '🍅';
+          else if (name.toLowerCase().includes('cheese') || name.toLowerCase().includes('milk')) icon = '🧀';
+          else if (name.toLowerCase().includes('meat') || name.toLowerCase().includes('chicken')) icon = '🥩';
+          else if (name.toLowerCase().includes('herb') || name.toLowerCase().includes('basil')) icon = '🌿';
+          else if (name.toLowerCase().includes('oil') || name.toLowerCase().includes('butter')) icon = '🫒';
+          else if (name.toLowerCase().includes('garlic') || name.toLowerCase().includes('onion')) icon = '🧄';
+          else if (name.toLowerCase().includes('salt') || name.toLowerCase().includes('pepper')) icon = '🧂';
+          else if (name.toLowerCase().includes('pasta') || name.toLowerCase().includes('noodle')) icon = '🍝';
+          else if (name.toLowerCase().includes('rice') || name.toLowerCase().includes('grain')) icon = '🍚';
+          else if (name.toLowerCase().includes('egg')) icon = '🥚';
+          else if (name.toLowerCase().includes('flour') || name.toLowerCase().includes('bread')) icon = '🍞';
+          else if (name.toLowerCase().includes('vegetable') || name.toLowerCase().includes('carrot')) icon = '🥕';
+          
+          ingredients.push({ icon, name, amount });
+        }
+      }
+    }
+    
+    // Process instructions
+    const instructions = [];
+    if (instructionMatches && instructionMatches[1]) {
+      const instructionLines = instructionMatches[1]
+        .split('\n')
+        .filter(line => line.trim())
+        .map(line => line.replace(/^(?:\d+\.?|\d+\)|-|•|●|\*)\s*/, '').trim());
+      
+      instructions.push(...instructionLines.filter(line => line));
+    }
+    
+    // Only create recipe if we have meaningful content
+    if (ingredients.length === 0 && instructions.length === 0) {
+      return null;
+    }
+    
+    const recipe: Recipe = {
+      title,
+      skill_level: skillMatch ? skillMatch[1].charAt(0).toUpperCase() + skillMatch[1].slice(1).toLowerCase() as Recipe['skill_level'] : "Beginner",
+      special_preferences: [],
+      cooking_time: timeMatch ? timeMatch[1] : "15 min",
+      ingredients,
+      instructions
+    };
+    
+    return recipe;
+  } catch (error) {
+    console.error("Error extracting recipe from message:", error);
+    return null;
+  }
+}
+
 // Main chat component with shared recipe state
 function SharedStateChat({ agentId, agentName }: { agentId: string; agentName: string }) {
   const { state: agentState, setState: setAgentState } = useCoAgent<RecipeAgentState>({
@@ -205,32 +304,177 @@ function SharedStateChat({ agentId, agentName }: { agentId: string; agentName: s
   });
   
   const [recipe, setRecipe] = useState(INITIAL_STATE.recipe);
-  const { appendMessage, isLoading } = useCopilotChat();
+  const { appendMessage, isLoading, messages } = useCopilotChat();
   const [changedKeys, setChangedKeys] = useState<string[]>([]);
+  const [lastProcessedMessageIndex, setLastProcessedMessageIndex] = useState(0);
+
+  // Add action to handle state snapshot events from Python agent
+  useCopilotAction({
+    name: "state_snapshot",
+    description: "Handle state snapshot events from the agent",
+    parameters: [
+      {
+        name: "snapshot",
+        type: "object",
+        description: "The state snapshot containing recipe data"
+      }
+    ],
+    handler: ({ snapshot }) => {
+      console.log("Received state snapshot from agent:", snapshot);
+      if (snapshot?.recipe) {
+        const newRecipe = snapshot.recipe;
+        setRecipe(newRecipe);
+        setAgentState({ recipe: newRecipe });
+        
+        // Mark all fields as changed for animation
+        setChangedKeys(Object.keys(newRecipe));
+        setTimeout(() => setChangedKeys([]), 1000);
+      }
+      return { success: true };
+    }
+  });
+
+  // Action to handle build_recipe calls from Python agent
+  useCopilotAction({
+    name: "build_recipe",
+    description: "Display recipe data received from the agent",
+    parameters: [
+      {
+        name: "title",
+        type: "string",
+        description: "Recipe title"
+      },
+      {
+        name: "ingredients",
+        type: "string[]",
+        description: "Array of ingredient descriptions"
+      },
+      {
+        name: "instructions",
+        type: "string[]",
+        description: "Array of cooking instructions"
+      },
+      {
+        name: "skill_level",
+        type: "string",
+        description: "Skill level required"
+      },
+      {
+        name: "cooking_time",
+        type: "string",
+        description: "Time to cook"
+      },
+      {
+        name: "special_preferences",
+        type: "string[]",
+        description: "Any dietary preferences"
+      }
+    ],
+    handler: ({ title, ingredients, instructions, skill_level, cooking_time, special_preferences }) => {
+      console.log("Build recipe called with:", { title, ingredients, instructions, skill_level, cooking_time, special_preferences });
+      
+      // Convert the raw data to the recipe format expected by the UI
+      const processedIngredients = (ingredients || []).map((ing: string) => {
+        const parts = ing.split(' ');
+        let amount = "to taste";
+        let name = ing;
+        
+        if (parts.length >= 3) {
+          amount = `${parts[0]} ${parts[1]}`;
+          name = parts.slice(2).join(' ');
+        } else if (parts.length === 2) {
+          amount = parts[0];
+          name = parts[1];
+        }
+        
+        // Choose appropriate emoji
+        let icon = '🥘';
+        if (name.toLowerCase().includes('tomato') || name.toLowerCase().includes('pepper')) icon = '🍅';
+        else if (name.toLowerCase().includes('cheese') || name.toLowerCase().includes('milk')) icon = '🧀';
+        else if (name.toLowerCase().includes('meat') || name.toLowerCase().includes('chicken')) icon = '🥩';
+        else if (name.toLowerCase().includes('herb') || name.toLowerCase().includes('basil')) icon = '🌿';
+        else if (name.toLowerCase().includes('oil') || name.toLowerCase().includes('butter')) icon = '🫒';
+        else if (name.toLowerCase().includes('garlic') || name.toLowerCase().includes('onion')) icon = '🧄';
+        else if (name.toLowerCase().includes('salt') || name.toLowerCase().includes('pepper')) icon = '🧂';
+        else if (name.toLowerCase().includes('pasta') || name.toLowerCase().includes('noodle')) icon = '🍝';
+        else if (name.toLowerCase().includes('rice') || name.toLowerCase().includes('grain')) icon = '🍚';
+        else if (name.toLowerCase().includes('egg')) icon = '🥚';
+        else if (name.toLowerCase().includes('flour') || name.toLowerCase().includes('bread')) icon = '🍞';
+        else if (name.toLowerCase().includes('vegetable') || name.toLowerCase().includes('carrot')) icon = '🥕';
+        
+        return { icon, name, amount };
+      });
+      
+      const recipeData = {
+        title: title || "New Recipe",
+        skill_level: skill_level || "Beginner",
+        special_preferences: special_preferences || [],
+        cooking_time: cooking_time || "15 min",
+        ingredients: processedIngredients,
+        instructions: instructions || []
+      };
+      
+      // Update both agent state and local state
+      setAgentState({ recipe: recipeData });
+      setRecipe(recipeData);
+      
+      // Mark all fields as changed for animation
+      setChangedKeys(Object.keys(recipeData));
+      setTimeout(() => setChangedKeys([]), 1000);
+      
+      return { success: true, message: "Recipe displayed successfully" };
+    }
+  });
+
+  // Action to get current recipe state
+  useCopilotAction({
+    name: "get_current_recipe",
+    description: "Get the current recipe state",
+    parameters: [],
+    handler: () => {
+      console.log("Agent requested current recipe:", recipe);
+      return {
+        recipe: recipe,
+        isEmpty: recipe.ingredients.length === 0 && recipe.instructions.length === 0
+      };
+    }
+  });
 
   // Sync agent state with local state
   useEffect(() => {
-    if (agentState && agentState.recipe) {
-      const newRecipe = { ...recipe };
-      const newChangedKeys: string[] = [];
+    if (agentState?.recipe) {
+      console.log("SharedState agent state updated:", agentState);
       
-      for (const key in recipe) {
-        const agentValue = (agentState.recipe as any)[key];
-        const recipeValue = (recipe as any)[key];
+      setRecipe(prevRecipe => {
+        // Check if agent state differs from current state
+        const currentRecipeStr = JSON.stringify(prevRecipe);
+        const agentRecipeStr = JSON.stringify(agentState.recipe);
         
-        if (agentValue !== undefined && agentValue !== null && 
-            JSON.stringify(agentValue) !== JSON.stringify(recipeValue)) {
-          (newRecipe as any)[key] = agentValue;
-          newChangedKeys.push(key);
+        if (currentRecipeStr !== agentRecipeStr) {
+          const newRecipe = { ...agentState.recipe };
+          const newChangedKeys: string[] = [];
+          
+          // Identify which keys changed
+          for (const key in agentState.recipe) {
+            const agentValue = (agentState.recipe as any)[key];
+            const currentValue = (prevRecipe as any)[key];
+            
+            if (JSON.stringify(agentValue) !== JSON.stringify(currentValue)) {
+              newChangedKeys.push(key);
+            }
+          }
+          
+          if (newChangedKeys.length > 0) {
+            setChangedKeys(newChangedKeys);
+            // Clear changed keys after animation
+            setTimeout(() => setChangedKeys([]), 1000);
+          }
+          
+          return newRecipe;
         }
-      }
-      
-      if (newChangedKeys.length > 0) {
-        setRecipe(newRecipe);
-        setChangedKeys(newChangedKeys);
-        // Clear changed keys after animation
-        setTimeout(() => setChangedKeys([]), 1000);
-      }
+        
+        return prevRecipe;
+      });
     }
   }, [agentState]);
 
@@ -246,16 +490,52 @@ function SharedStateChat({ agentId, agentName }: { agentId: string; agentName: s
     });
   };
 
+  // Process new messages from the agent to extract recipe information
+  useEffect(() => {
+    if (messages && messages.length > lastProcessedMessageIndex) {
+      const newMessages = messages.slice(lastProcessedMessageIndex);
+      
+      for (const message of newMessages) {
+        if (message.role === 'assistant' && message.content) {
+          // Try to extract recipe information from the message
+          const recipeData = extractRecipeFromMessage(message.content);
+          if (recipeData) {
+            console.log("Extracted recipe from message:", recipeData);
+            setRecipe(recipeData);
+            setAgentState({ recipe: recipeData });
+            
+            // Mark all fields as changed for animation
+            setChangedKeys(Object.keys(recipeData));
+            setTimeout(() => setChangedKeys([]), 1000);
+          }
+        }
+      }
+      
+      setLastProcessedMessageIndex(messages.length);
+    }
+  }, [messages, lastProcessedMessageIndex, setAgentState]);
+
+  // Add debugging for agent state changes
+  useEffect(() => {
+    console.log("SharedState agentState changed:", agentState);
+  }, [agentState]);
+
+  useEffect(() => {
+    console.log("SharedState recipe state changed:", recipe);
+  }, [recipe]);
+
 
   return (
-    <div className="min-h-screen w-full flex items-center justify-center bg-gray-50">
-      <RecipeBuilder 
-        recipe={recipe}
-        updateRecipe={updateRecipe}
-        changedKeys={changedKeys}
-        isLoading={isLoading}
-        appendMessage={appendMessage}
-      />
+    <div className="min-h-screen w-full flex bg-gray-50">
+      <div className="flex-1 overflow-y-auto p-4">
+        <RecipeBuilder 
+          recipe={recipe}
+          updateRecipe={updateRecipe}
+          changedKeys={changedKeys}
+          isLoading={isLoading}
+          appendMessage={appendMessage}
+        />
+      </div>
       <CopilotSidebar
         defaultOpen={true}
         labels={{

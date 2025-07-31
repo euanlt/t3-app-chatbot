@@ -8,7 +8,7 @@ import "@copilotkit/react-ui/styles.css";
 import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import { diffWords } from "diff";
-import * as MarkdownIt from "markdown-it";
+import MarkdownIt from "markdown-it";
 
 interface PredictiveStateUpdatesProps {
   agentId: string;
@@ -148,18 +148,37 @@ function DocumentEditor({ agentId }: { agentId: string }) {
 
   useEffect(() => {
     setPlaceholderVisible(text.length === 0);
+  }, [text]);
 
-    if (!isLoading) {
+  useEffect(() => {
+    if (!isLoading && text !== currentDocument) {
       setCurrentDocument(text);
       setAgentState({
         document: text,
       });
+      console.log("Updated agent state with document:", text);
     }
-  }, [text, isLoading, setAgentState]);
+  }, [text, isLoading, currentDocument, setAgentState]);
+
+  // Add action to provide document context to the agent
+  useCopilotAction({
+    name: "get_current_document",
+    description: "Get the current document content from the editor",
+    parameters: [],
+    handler: () => {
+      const currentText = editor?.getText() || "";
+      console.log("Agent requested current document:", currentText);
+      return {
+        document: currentText,
+        length: currentText.length,
+        isEmpty: currentText.length === 0
+      };
+    }
+  });
 
   // Action to write the document with confirmation UI
   useCopilotAction({
-    name: "write_document",
+    name: "confirm_write_document",
     description: "Present the proposed changes to the user for review",
     parameters: [
       {
@@ -205,7 +224,7 @@ function DocumentEditor({ agentId }: { agentId: string }) {
 
 // Helper functions for markdown and diff processing
 function fromMarkdown(text: string) {
-  const md = new (MarkdownIt as any)({
+  const md = new MarkdownIt({
     typographer: true,
     html: true,
   });

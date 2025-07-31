@@ -10,7 +10,7 @@ from typing import AsyncIterator, List, Tuple
 from pydantic import BaseModel, Field
 
 from pydantic_ai import Agent, RunContext
-from .ag_ui_types import CustomEvent, EventType, StateDeps
+from .ag_ui_types import CustomEvent, EventType
 
 # Load environment variables
 from dotenv import load_dotenv
@@ -25,47 +25,61 @@ class DocumentState(BaseModel):
     document: str = ''
 
 
-# Create the agent with state dependencies
+# Create the agent
 agent = Agent(
     model='openrouter:openai/gpt-4o-mini',
     system_prompt=dedent("""
         You are an AI document editor that helps users write and edit documents.
         
         When the user asks you to help with writing:
-        1. Understand what they want to write about
-        2. Use the write_document tool to create or update content
+        1. First, use get_document_content to see what's currently in the document
+        2. Use the ui_confirm_write tool to create or update content
         3. The tool will show a preview of changes for user approval
         
         When the user asks you to edit existing content:
-        1. Read the current document state
+        1. Use get_document_content to read the current document
         2. Make the requested changes
-        3. Use write_document to present the changes for approval
+        3. Use ui_confirm_write to present the changes for approval
         
         Always provide helpful, well-structured content that matches the user's request.
-    """),
-    deps_type=StateDeps[DocumentState]
+        Write in markdown format with proper headings, lists, and formatting.
+    """)
 )
 
 
-# Simple tool that updates document state
-@agent.tool
-async def write_document(
-    ctx: RunContext[StateDeps[DocumentState]],
+# Tool to get current document content
+@agent.tool_plain
+async def get_document_content() -> CustomEvent:
+    """Get the current document content from the editor.
+    
+    Returns:
+        CustomEvent that requests the document content
+    """
+    return CustomEvent(
+        type=EventType.CUSTOM,
+        name="get_current_document",
+        value={}
+    )
+
+
+# Tool to write document with user confirmation
+@agent.tool_plain
+async def ui_confirm_write(
     document: str
-) -> str:
-    """Write or update the document content.
+) -> CustomEvent:
+    """Write or update the document content with user confirmation.
     
     Args:
         document: The new document content in markdown format
     
     Returns:
-        Confirmation message
+        CustomEvent that triggers the confirmation UI
     """
-    # Update the state
-    await ctx.deps.state.set_state(DocumentState(document=document))
-    
-    # Return confirmation
-    return f"Document updated successfully. The document now contains {len(document.split())} words."
+    return CustomEvent(
+        type=EventType.CUSTOM,
+        name="confirm_write_document",
+        value={"document": document}
+    )
 
 
 # Convert to AG-UI app
