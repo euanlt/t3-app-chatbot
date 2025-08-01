@@ -276,9 +276,11 @@ function HumanInTheLoopChat({ agentName }: { agentId: string; agentName: string 
         steps = args;
       } else if (typeof args === 'object' && args !== null) {
         // Look for steps in any property
-        for (const key in args) {
-          if (Array.isArray(args[key])) {
-            steps = args[key];
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const argsObj = args as any;
+        for (const key in argsObj) {
+          if (Array.isArray(argsObj[key])) {
+            steps = argsObj[key];
             break;
           }
         }
