@@ -265,9 +265,9 @@ function extractRecipeFromMessage(content: string): Recipe | null {
     
     const recipe: Recipe = {
       title,
-      skill_level: skillMatch ? skillMatch[1].charAt(0).toUpperCase() + skillMatch[1].slice(1).toLowerCase() as Recipe['skill_level'] : "Beginner",
+      skill_level: skillMatch && skillMatch[1] ? skillMatch[1].charAt(0).toUpperCase() + skillMatch[1].slice(1).toLowerCase() as Recipe['skill_level'] : "Beginner",
       special_preferences: [],
-      cooking_time: timeMatch ? timeMatch[1] : "15 min",
+      cooking_time: timeMatch && timeMatch[1] ? timeMatch[1] : "15 min",
       ingredients,
       instructions
     };
@@ -368,7 +368,7 @@ function SharedStateChat({ agentId }: { agentId: string }) {
         if (parts.length >= 3) {
           amount = `${parts[0]} ${parts[1]}`;
           name = parts.slice(2).join(' ');
-        } else if (parts.length === 2) {
+        } else if (parts.length === 2 && parts[0] && parts[1]) {
           amount = parts[0];
           name = parts[1];
         }
@@ -391,9 +391,9 @@ function SharedStateChat({ agentId }: { agentId: string }) {
         return { icon, name, amount };
       });
       
-      const recipeData = {
+      const recipeData: Recipe = {
         title: title || "New Recipe",
-        skill_level: skill_level || "Beginner",
+        skill_level: (skill_level || "Beginner") as Recipe['skill_level'],
         special_preferences: special_preferences || [],
         cooking_time: cooking_time || "15 min",
         ingredients: processedIngredients,
@@ -442,8 +442,10 @@ function SharedStateChat({ agentId }: { agentId: string }) {
           
           // Identify which keys changed
           for (const key in agentState.recipe) {
-            const agentValue = (agentState.recipe as Record<string, unknown>)[key];
-            const currentValue = (prevRecipe as Record<string, unknown>)[key];
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const agentValue = (agentState.recipe as any)[key];
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const currentValue = (prevRecipe as any)[key];
             
             if (JSON.stringify(agentValue) !== JSON.stringify(currentValue)) {
               newChangedKeys.push(key);
@@ -482,9 +484,11 @@ function SharedStateChat({ agentId }: { agentId: string }) {
       const newMessages = messages.slice(lastProcessedMessageIndex);
       
       for (const message of newMessages) {
-        if (message.role === 'assistant' && message.content) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const msg = message as any;
+        if (msg.role === 'assistant' && msg.content) {
           // Try to extract recipe information from the message
-          const recipeData = extractRecipeFromMessage(message.content);
+          const recipeData = extractRecipeFromMessage(msg.content);
           if (recipeData) {
             console.log("Extracted recipe from message:", recipeData);
             setRecipe(recipeData);
