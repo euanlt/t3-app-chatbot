@@ -23,8 +23,8 @@ function TaskApprovalWithResponse({
   status 
 }: { 
   steps: TaskStep[];
-  respond: (response: unknown) => void;
-  status: string;
+  respond?: (response: unknown) => void;
+  status?: string;
 }) {
   console.log("TaskApprovalWithResponse received steps:", JSON.stringify(steps, null, 2));
   const [localSteps, setLocalSteps] = useState<TaskStep[]>(steps);
@@ -89,7 +89,7 @@ function TaskApprovalWithResponse({
             disabled={status !== "executing"}
             onClick={() => {
               setAccepted(false);
-              respond({ accepted: false });
+              respond?.({ accepted: false });
             }}
           >
             Reject
@@ -101,7 +101,7 @@ function TaskApprovalWithResponse({
             disabled={status !== "executing"}
             onClick={() => {
               setAccepted(true);
-              respond({ 
+              respond?.({ 
                 accepted: true, 
                 steps: localSteps.filter(step => step.status === "enabled")
               });
@@ -195,7 +195,7 @@ function HumanInTheLoopChat({ agentName }: { agentId: string; agentName: string 
               </pre>
               <button
                 className="bg-black text-white py-2 px-4 rounded mt-2"
-                onClick={() => respond({ accepted: false })}
+                onClick={() => respond?.({ accepted: false })}
               >
                 Dismiss
               </button>
@@ -297,7 +297,7 @@ function HumanInTheLoopChat({ agentName }: { agentId: string; agentName: string 
               </pre>
               <button
                 className="bg-black text-white py-2 px-4 rounded mt-2"
-                onClick={() => respond({ accepted: false })}
+                onClick={() => respond?.({ accepted: false })}
               >
                 Dismiss
               </button>
