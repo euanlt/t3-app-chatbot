@@ -165,15 +165,15 @@ function HumanInTheLoopChat({ agentName }: { agentId: string; agentName: string 
         steps = args;
       }
       // Check for value.steps (CustomEvent format)
-      else if (args?.value?.steps && Array.isArray(args.value.steps)) {
-        steps = args.value.steps;
+      else if ((args as any)?.value?.steps && Array.isArray((args as any).value.steps)) {
+        steps = (args as any).value.steps;
       }
       // Check for element property (AG-UI protocol)
-      else if (args?.element?.steps) {
-        steps = args.element.steps;
+      else if ((args as any)?.element?.steps) {
+        steps = (args as any).element.steps;
       }
       // Check for type and steps at root
-      else if (args?.type === "task_approval" && args?.steps) {
+      else if ((args as any)?.type === "task_approval" && (args as any)?.steps) {
         steps = args.steps;
       }
       
@@ -208,14 +208,14 @@ function HumanInTheLoopChat({ agentName }: { agentId: string; agentName: string 
         if (typeof step === 'string') {
           description = step;
         } else if (step && typeof step === 'object') {
-          description = step.description || 
-                       step.text || 
-                       step.task ||
-                       step.step ||
-                       step.title ||
-                       step.name ||
-                       step.content ||
-                       (step.id ? `Task ${step.id}` : `Task ${index + 1}`);
+          description = (step as any).description || 
+                       (step as any).text || 
+                       (step as any).task ||
+                       (step as any).step ||
+                       (step as any).title ||
+                       (step as any).name ||
+                       (step as any).content ||
+                       ((step as any).id ? `Task ${(step as any).id}` : `Task ${index + 1}`);
         }
         
         return {

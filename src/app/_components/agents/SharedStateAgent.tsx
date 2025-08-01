@@ -531,7 +531,7 @@ function SharedStateChat({ agentId }: { agentId: string }) {
   );
 }
 
-export default function SharedStateAgent({ agentId, agentName }: SharedStateAgentProps) {
+export default function SharedStateAgent({ agentId }: SharedStateAgentProps) {
   return (
     <CopilotKit 
       runtimeUrl="/api/copilotkit"
