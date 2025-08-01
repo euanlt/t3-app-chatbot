@@ -131,7 +131,7 @@ export default function ApiKeyModal({
 
     try {
       await createApiKey.mutateAsync({
-        provider: provider === "google" ? "gemini" : provider,
+        provider: provider === "google" ? "gemini" : provider === "anthropic" ? "claude" : provider as "openai" | "gemini" | "claude" | "openrouter",
         keyName: keyName.trim(),
         apiKey: apiKey.trim(),
         userId: "default-user",
