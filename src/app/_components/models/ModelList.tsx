@@ -6,13 +6,6 @@ import { api } from "~/trpc/react";
 
 type Provider = "openrouter" | "openai" | "anthropic" | "google";
 
-interface ModelInfo {
-  id: string;
-  name: string;
-  provider: string;
-  description: string;
-  recommended?: boolean;
-}
 
 interface ModelListProps {
   selectedProvider: Provider;
@@ -28,7 +21,7 @@ export default function ModelList({
   const [searchQuery, setSearchQuery] = useState("");
   const [useLiveData, setUseLiveData] = useState(false);
 
-  const { data: modelsData, isLoading, refetch } = api.models.getModelsByProvider.useQuery({
+  const { data: modelsData, isLoading } = api.models.getModelsByProvider.useQuery({
     provider: selectedProvider,
     userId: "default-user",
     sortBy: "popularity",
@@ -36,7 +29,7 @@ export default function ModelList({
     useLiveData,
   });
 
-  const models = modelsData?.models || [];
+  const models = useMemo(() => modelsData?.models || [], [modelsData?.models]);
 
   // Filter models based on search query
   const filteredModels = useMemo(() => {
@@ -133,7 +126,7 @@ export default function ModelList({
         <div className="text-center py-6">
           {searchQuery ? (
             <>
-              <div className="text-secondary mb-2">No models match "{searchQuery}"</div>
+              <div className="text-secondary mb-2">No models match &quot;{searchQuery}&quot;</div>
               <button 
                 onClick={() => setSearchQuery("")}
                 className="text-blue-500 hover:text-blue-600 text-sm underline"

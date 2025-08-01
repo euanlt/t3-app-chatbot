@@ -12,8 +12,6 @@ import {
   FaEdit,
   FaComments,
   FaEllipsisV,
-  FaKey,
-  FaTimes,
   FaChevronLeft,
   FaChevronRight,
   FaUsers,
@@ -119,15 +117,6 @@ export default function Sidebar({
   });
 
   // Custom model deletion
-  const deleteCustomModel = api.customModels.deleteCustomModel.useMutation({
-    onSuccess: (_, variables) => {
-      // If the deleted model was currently selected, switch to default
-      if (selectedModel === variables.id) {
-        onModelChange("mistralai/mistral-small-3.2-24b-instruct:free");
-      }
-      void refetchModels();
-    },
-  });
 
   // Server management mutations
   const startServer = api.mcp.startServer.useMutation({

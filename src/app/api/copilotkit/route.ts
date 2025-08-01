@@ -1,4 +1,4 @@
-import { NextRequest } from "next/server";
+import type { NextRequest } from "next/server";
 import {
   CopilotRuntime,
   ExperimentalEmptyAdapter,
@@ -17,7 +17,7 @@ export async function POST(request: NextRequest) {
   const agents = await integration.agents();
   
   const runtime = new CopilotRuntime({
-    // @ts-ignore - The types might not match exactly but this works
+    // @ts-expect-error - The types might not match exactly but this works
     agents,
   });
   

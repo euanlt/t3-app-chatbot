@@ -204,9 +204,9 @@ function CodeDisplay({ code, onApply }: { code: CodeSnippet; onApply: () => void
 }
 
 // Main chat component with content generation actions
-function GenerativeChat({ agentId, agentName }: { agentId: string; agentName: string }) {
+function GenerativeChat({ agentName }: { agentId: string; agentName: string }) {
   const [background, setBackground] = useState<string>("--copilot-kit-background-color");
-  const [generatedContent, setGeneratedContent] = useState<any[]>([]);
+  const [generatedContent, setGeneratedContent] = useState<Array<{ id: number; type: "haiku" | "recipe" | "code"; content: HaikuContent | RecipeContent | CodeSnippet }>>([]);
 
   // Background color action
   useCopilotAction({

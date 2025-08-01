@@ -61,18 +61,6 @@ export default function AgentChat({ agentId, agentName }: AgentChatProps) {
   );
 }
 
-function getAgentDescription(agentId: string): string {
-  const descriptions: Record<string, string> = {
-    agentic_chat: "Chat with AI that can check time in any timezone and change background colors",
-    human_in_the_loop: "Collaborative task planning with interactive approval workflows",
-    agentic_generative_ui: "Long-running tasks with real-time progress visualization",
-    tool_based_generative_ui: "Generate beautiful content like haikus, recipes, and code snippets",
-    shared_state: "Collaborative recipe builder with real-time state synchronization",
-    predictive_state_updates: "Real-time document editing with predictive text and diff visualization"
-  };
-  
-  return descriptions[agentId] || "AI-powered assistant";
-}
 
 function getAgentGreeting(agentId: string): string {
   const greetings: Record<string, string> = {

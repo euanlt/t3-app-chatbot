@@ -34,7 +34,6 @@ interface RecipeAgentState {
 function RecipeBuilder({ 
   recipe, 
   updateRecipe,
-  changedKeys,
   isLoading,
   appendMessage
 }: { 
@@ -44,14 +43,6 @@ function RecipeBuilder({
   isLoading: boolean;
   appendMessage: (message: TextMessage) => void;
 }) {
-  const getSkillLevelColor = (level: string) => {
-    switch (level) {
-      case "Beginner": return "bg-green-100 text-green-800";
-      case "Intermediate": return "bg-yellow-100 text-yellow-800";
-      case "Advanced": return "bg-red-100 text-red-800";
-      default: return "bg-gray-100 text-gray-800";
-    }
-  };
 
   return (
     <div className="bg-white p-6 rounded-lg shadow-md border border-gray-200 m-4">
@@ -177,14 +168,6 @@ function RecipeBuilder({
 }
 
 // Ping animation component
-function Ping() {
-  return (
-    <span className="absolute -top-1 -right-1 flex h-3 w-3">
-      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
-      <span className="relative inline-flex rounded-full h-3 w-3 bg-blue-500"></span>
-    </span>
-  );
-}
 
 const INITIAL_STATE: RecipeAgentState = {
   recipe: {
@@ -297,7 +280,7 @@ function extractRecipeFromMessage(content: string): Recipe | null {
 }
 
 // Main chat component with shared recipe state
-function SharedStateChat({ agentId, agentName }: { agentId: string; agentName: string }) {
+function SharedStateChat({ agentId }: { agentId: string; agentName: string }) {
   const { state: agentState, setState: setAgentState } = useCoAgent<RecipeAgentState>({
     name: agentId,
     initialState: INITIAL_STATE
@@ -456,8 +439,8 @@ function SharedStateChat({ agentId, agentName }: { agentId: string; agentName: s
           
           // Identify which keys changed
           for (const key in agentState.recipe) {
-            const agentValue = (agentState.recipe as any)[key];
-            const currentValue = (prevRecipe as any)[key];
+            const agentValue = (agentState.recipe as Record<string, unknown>)[key];
+            const currentValue = (prevRecipe as Record<string, unknown>)[key];
             
             if (JSON.stringify(agentValue) !== JSON.stringify(currentValue)) {
               newChangedKeys.push(key);
@@ -548,7 +531,7 @@ function SharedStateChat({ agentId, agentName }: { agentId: string; agentName: s
   );
 }
 
-export default function SharedStateAgent({ agentId, agentName }: SharedStateAgentProps) {
+export default function SharedStateAgent({ agentId }: SharedStateAgentProps) {
   return (
     <CopilotKit 
       runtimeUrl="/api/copilotkit"

@@ -289,7 +289,23 @@ async function fetchOpenRouterModels(apiKey: string): Promise<ModelInfo[]> {
 
     const data = await response.json();
     
-    const models = data.data?.map((model: any) => {
+    interface OpenRouterModel {
+      id: string;
+      name?: string;
+      description?: string;
+      pricing?: {
+        prompt?: string;
+        completion?: string;
+      };
+      context_length?: number;
+      top_provider?: {
+        max_completion_tokens?: number;
+        supports_vision?: boolean;
+        supports_tools?: boolean;
+      };
+    }
+
+    const models = data.data?.map((model: OpenRouterModel) => {
       // Calculate popularity score based on OpenRouter's ranking
       const popularityScore = model.top_provider?.max_completion_tokens ? 
         Math.min(100, Math.max(10, (model.top_provider.max_completion_tokens / 1000))) : 50;
@@ -366,9 +382,13 @@ async function fetchOpenAIModels(apiKey: string): Promise<ModelInfo[]> {
 
     const data = await response.json();
     
-    return data.data?.filter((model: any) => 
+    interface OpenAIModel {
+      id: string;
+    }
+
+    return data.data?.filter((model: OpenAIModel) => 
       model.id.includes("gpt") || model.id.includes("text-davinci") || model.id.includes("text-curie")
-    ).map((model: any) => ({
+    ).map((model: OpenAIModel) => ({
       id: `openai/${model.id}`,
       name: getOpenAIDisplayName(model.id),
       provider: "openai",
@@ -390,7 +410,7 @@ async function fetchOpenAIModels(apiKey: string): Promise<ModelInfo[]> {
 }
 
 // Function to fetch models from Anthropic
-async function fetchAnthropicModels(apiKey: string): Promise<ModelInfo[]> {
+async function fetchAnthropicModels(_apiKey: string): Promise<ModelInfo[]> {
   // Anthropic doesn't have a public models endpoint, return known models
   return [
     {
@@ -482,9 +502,16 @@ async function fetchGoogleModels(apiKey: string): Promise<ModelInfo[]> {
 
     const data = await response.json();
     
-    const models = data.models?.filter((model: any) => 
+    interface GoogleModel {
+      name: string;
+      displayName?: string;
+      inputTokenLimit?: number;
+      supportedGenerationMethods?: string[];
+    }
+
+    const models = data.models?.filter((model: GoogleModel) => 
       model.name.includes("gemini") && model.supportedGenerationMethods?.includes("generateContent")
-    ).map((model: any) => {
+    ).map((model: GoogleModel) => {
       const modelId = model.name.split('/').pop();
       const displayName = model.displayName || modelId;
       

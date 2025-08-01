@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { useState, useEffect } from "react";
-import { CopilotKit, useCoAgent, useCopilotAction, useCopilotChat, useCopilotReadable } from "@copilotkit/react-core";
+import { CopilotKit, useCoAgent, useCopilotChat, useCopilotReadable } from "@copilotkit/react-core";
 import { CopilotSidebar } from "@copilotkit/react-ui";
 import "@copilotkit/react-ui/styles.css";
 import { useEditor, EditorContent } from "@tiptap/react";
@@ -46,7 +46,7 @@ function extractDocumentFromMessage(content: string, userMessage?: string): stri
     
     // Check if this looks like substantial structured content
     const lines = content.split('\n');
-    let documentLines = [];
+    const documentLines = [];
     let hasStructuredContent = false;
     
     for (const line of lines) {
@@ -66,8 +66,7 @@ function extractDocumentFromMessage(content: string, userMessage?: string): stri
     // If we have structured markdown content and it's substantial, consider it document content
     if (hasStructuredContent && documentLines.length > 3) {
       // Remove common chat prefixes if present
-      let cleanedContent = documentLines.join('\n');
-      cleanedContent = cleanedContent
+      const cleanedContent = documentLines.join('\n')
         .replace(/^(Here's|Here is|I've written|I've created|I've completed|I'll continue).*?:\n\n/i, '')
         .replace(/^(The completed story|The continuation|The document).*?:\n\n/i, '')
         .trim();
@@ -80,7 +79,7 @@ function extractDocumentFromMessage(content: string, userMessage?: string): stri
       const paragraphs = content.split('\n\n').filter(p => p.trim().length > 50);
       if (paragraphs.length >= 2) {
         // Remove conversational prefixes
-        let cleanedContent = content
+        const cleanedContent = content
           .replace(/^(Here's|Here is|I've written|I've created|I've completed|I'll continue).*?:\n\n/i, '')
           .replace(/^(The completed story|The continuation|The document).*?:\n\n/i, '')
           .trim();
@@ -95,7 +94,7 @@ function extractDocumentFromMessage(content: string, userMessage?: string): stri
     if (userMessage === 'document' && content.length > 100) {
       console.log("Using fallback extraction for completion request");
       // Remove common prefixes
-      let cleanedContent = content
+      const cleanedContent = content
         .replace(/^(I've|I have|Here's|Here is|The).*?(updated|continued|completed|added|written).*?[:\.]\s*/i, '')
         .trim();
       
@@ -218,7 +217,7 @@ function DocumentEditor({ agentId }: { agentId: string }) {
   
   const [placeholderVisible, setPlaceholderVisible] = useState(false);
   const [currentDocument, setCurrentDocument] = useState("");
-  const { isLoading, appendMessage, messages, setMessages } = useCopilotChat();
+  const { isLoading, messages } = useCopilotChat();
   const [lastMessageCount, setLastMessageCount] = useState(0);
   const [confirmationUI, setConfirmationUI] = useState<{ show: boolean; proposedDocument: string } | null>(null);
 
@@ -425,7 +424,7 @@ function diffPartialText(oldText: string, newText: string, isComplete: boolean =
   return result;
 }
 
-export default function PredictiveStateUpdates({ agentId, agentName }: PredictiveStateUpdatesProps) {
+export default function PredictiveStateUpdates({ agentId }: PredictiveStateUpdatesProps) {
   return (
     <CopilotKit 
       runtimeUrl="/api/copilotkit"

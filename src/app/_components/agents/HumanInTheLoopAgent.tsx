@@ -23,7 +23,7 @@ function TaskApprovalWithResponse({
   status 
 }: { 
   steps: TaskStep[];
-  respond: (response: any) => void;
+  respond: (response: unknown) => void;
   status: string;
 }) {
   console.log("TaskApprovalWithResponse received steps:", JSON.stringify(steps, null, 2));
@@ -116,7 +116,7 @@ function TaskApprovalWithResponse({
 }
 
 // Main chat component with task approval UI
-function HumanInTheLoopChat({ agentId, agentName }: { agentId: string; agentName: string }) {
+function HumanInTheLoopChat({ agentName }: { agentId: string; agentName: string }) {
   const [background, setBackground] = useState<string>("--copilot-kit-background-color");
 
   // Background color action
@@ -199,7 +199,7 @@ function HumanInTheLoopChat({ agentId, agentName }: { agentId: string; agentName
       }
 
       // Format steps for the UI component - more robust extraction
-      const formattedSteps = steps.map((step: any, index: number) => {
+      const formattedSteps = steps.map((step: unknown, index: number) => {
         console.log(`Processing step ${index}:`, JSON.stringify(step, null, 2));
         
         // Extract description from various possible locations
@@ -299,7 +299,7 @@ function HumanInTheLoopChat({ agentId, agentName }: { agentId: string; agentName
       }
 
       // Convert steps to proper format if needed
-      const formattedSteps = steps.map((step: any, index: number) => {
+      const formattedSteps = steps.map((step: unknown, index: number) => {
         console.log(`Processing step ${index}:`, step, typeof step);
         
         if (typeof step === 'string') {

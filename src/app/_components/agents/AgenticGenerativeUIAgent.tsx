@@ -90,7 +90,7 @@ function TaskExecutionDisplay({
 
       {/* Task Steps */}
       <div className="space-y-3">
-        {execution.steps.map((step, index) => (
+        {execution.steps.map((step) => (
           <div key={step.id} className="border rounded-lg p-4">
             <div className="flex items-center justify-between mb-2">
               <div className="flex items-center">
@@ -136,7 +136,7 @@ function TaskExecutionDisplay({
 }
 
 // Main chat component with task execution UI
-function AgenticGenerativeUIChat({ agentId, agentName }: { agentId: string; agentName: string }) {
+function AgenticGenerativeUIChat({ agentName }: { agentId: string; agentName: string }) {
   const [background, setBackground] = useState<string>("--copilot-kit-background-color");
   const [currentExecution, setCurrentExecution] = useState<TaskExecution | null>(null);
 
@@ -184,13 +184,16 @@ function AgenticGenerativeUIChat({ agentId, agentName }: { agentId: string; agen
     handler: ({ title, description, steps }) => {
       console.log('Task execution started:', { title, description, steps });
       
-      const taskSteps: TaskStep[] = (steps || []).map((step: any, index: number) => ({
-        id: step.id || `step-${index}`,
-        title: step.title || `Step ${index + 1}`,
-        description: step.description || `Task step ${index + 1}`,
-        status: "pending" as const,
-        progress: 0,
-      }));
+      const taskSteps: TaskStep[] = (steps || []).map((step: unknown, index: number) => {
+        const stepObj = step as { id?: string; title?: string; description?: string };
+        return {
+          id: stepObj.id || `step-${index}`,
+          title: stepObj.title || `Step ${index + 1}`,
+          description: stepObj.description || `Task step ${index + 1}`,
+          status: "pending" as const,
+          progress: 0,
+        };
+      });
 
       const execution: TaskExecution = {
         id: Date.now().toString(),

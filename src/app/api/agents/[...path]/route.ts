@@ -1,4 +1,5 @@
-import { NextRequest, NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
+import { NextResponse } from "next/server";
 
 // This route is only used in local development when NEXT_PUBLIC_AGENT_BACKEND_URL is not set
 // In production, Vercel rewrites handle the routing to Python functions
@@ -43,7 +44,6 @@ export async function GET(
     const contentType = response.headers.get("content-type");
     if (contentType?.includes("text/event-stream")) {
       // Create a TransformStream to proxy the SSE data
-      const encoder = new TextEncoder();
       const stream = new ReadableStream({
         async start(controller) {
           const reader = response.body?.getReader();

@@ -136,7 +136,7 @@ export default function ApiKeyModal({
         apiKey: apiKey.trim(),
         userId: "default-user",
       });
-    } catch (error) {
+    } catch (_error) {
       // Error handled in onError callback
     }
   };
