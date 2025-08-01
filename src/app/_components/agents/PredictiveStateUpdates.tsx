@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { useState, useEffect } from "react";
-import { CopilotKit, useCoAgent, useCopilotChat, useCopilotReadable } from "@copilotkit/react-core";
+import { CopilotKit, useCoAgent, useCopilotChat, useCopilotReadable, useCopilotMessagesContext } from "@copilotkit/react-core";
 import { CopilotSidebar } from "@copilotkit/react-ui";
 import "@copilotkit/react-ui/styles.css";
 import { useEditor, EditorContent } from "@tiptap/react";
@@ -217,7 +217,8 @@ function DocumentEditor({ agentId }: { agentId: string }) {
   
   const [placeholderVisible, setPlaceholderVisible] = useState(false);
   const [currentDocument, setCurrentDocument] = useState("");
-  const { isLoading, messages } = useCopilotChat();
+  const { isLoading } = useCopilotChat();
+  const { messages, setMessages } = useCopilotMessagesContext();
   const [lastMessageCount, setLastMessageCount] = useState(0);
   const [confirmationUI, setConfirmationUI] = useState<{ show: boolean; proposedDocument: string } | null>(null);
 
@@ -289,14 +290,16 @@ function DocumentEditor({ agentId }: { agentId: string }) {
       let lastUserMessage = '';
       
       for (const message of newMessages) {
-        if (message.role === 'user') {
+        // Type assertion for message properties
+        const msg = message as any;
+        if (msg.role === 'user') {
           // Track the user's message for context
-          lastUserMessage = message.content || '';
+          lastUserMessage = msg.content || '';
           console.log("User message:", lastUserMessage);
           console.log("Current document in editor:", currentDocument);
-        } else if (message.role === 'assistant' && message.content) {
+        } else if (msg.role === 'assistant' && msg.content) {
           console.log("Assistant message received, checking for document content");
-          console.log("Message content preview:", message.content.substring(0, 300));
+          console.log("Message content preview:", msg.content.substring(0, 300));
           
           // Always try to extract document content when user asks for completion/continuation
           const isCompletionRequest = lastUserMessage && (
@@ -313,7 +316,7 @@ function DocumentEditor({ agentId }: { agentId: string }) {
           console.log("Is completion request:", isCompletionRequest);
           
           // Extract content if it looks like document content or user asked for completion
-          const extractedContent = extractDocumentFromMessage(message.content, isCompletionRequest ? 'document' : lastUserMessage);
+          const extractedContent = extractDocumentFromMessage(msg.content, isCompletionRequest ? 'document' : lastUserMessage);
           
           if (extractedContent) {
             console.log("Extracted document content from message:", extractedContent);

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { CopilotKit, useCoAgent, useCopilotChat, useCopilotAction } from "@copilotkit/react-core";
+import { CopilotKit, useCoAgent, useCopilotChat, useCopilotAction, useCopilotMessagesContext } from "@copilotkit/react-core";
 import { CopilotSidebar } from "@copilotkit/react-ui";
 import "@copilotkit/react-ui/styles.css";
 import { Role, TextMessage } from "@copilotkit/runtime-client-gql";
@@ -287,7 +287,8 @@ function SharedStateChat({ agentId }: { agentId: string }) {
   });
   
   const [recipe, setRecipe] = useState(INITIAL_STATE.recipe);
-  const { appendMessage, isLoading, messages } = useCopilotChat();
+  const { appendMessage, isLoading } = useCopilotChat();
+  const { messages } = useCopilotMessagesContext();
   const [changedKeys, setChangedKeys] = useState<string[]>([]);
   const [lastProcessedMessageIndex, setLastProcessedMessageIndex] = useState(0);
 
