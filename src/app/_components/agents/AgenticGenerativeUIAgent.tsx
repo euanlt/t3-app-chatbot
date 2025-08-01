@@ -247,7 +247,7 @@ function AgenticGenerativeUIChat({ agentName }: { agentId: string; agentName: st
           if (step.id === stepId) {
             return {
               ...step,
-              status: status || step.status,
+              status: (status || step.status) as TaskStep['status'],
               progress: typeof progress === 'number' ? progress : step.progress,
               completedTime: status === "completed" ? new Date() : step.completedTime
             };
