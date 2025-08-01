@@ -6,8 +6,10 @@ import { NextResponse } from "next/server";
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { path: string[] } }
+  { params }: { params: Promise<{ path: string[] }> }
 ) {
+  const { path } = await params;
+  
   // Only proxy in development
   if (process.env.NODE_ENV === "production") {
     return NextResponse.json(
@@ -16,7 +18,7 @@ export async function GET(
     );
   }
 
-  const agentPath = params.path.join("/");
+  const agentPath = path.join("/");
   const pythonBackendUrl = process.env.PYTHON_BACKEND_URL || "http://localhost:9000";
   
   try {
@@ -91,8 +93,10 @@ export async function GET(
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { path: string[] } }
+  { params }: { params: Promise<{ path: string[] }> }
 ) {
+  const { path } = await params;
+  
   // Only proxy in development
   if (process.env.NODE_ENV === "production") {
     return NextResponse.json(
@@ -101,7 +105,7 @@ export async function POST(
     );
   }
 
-  const agentPath = params.path.join("/");
+  const agentPath = path.join("/");
   const pythonBackendUrl = process.env.PYTHON_BACKEND_URL || "http://localhost:9000";
   
   try {
