@@ -23,14 +23,14 @@ async function testAgentIntegration() {
       console.log(`❌ CopilotKit endpoint returned status: ${response.status}`);
     }
   } catch (error) {
-    console.log('❌ CopilotKit endpoint is not accessible:', error.message);
+    console.log('❌ CopilotKit endpoint is not accessible:', error instanceof Error ? error.message : String(error));
   }
 
   console.log('\n2. Checking agent registration...');
   
   // Import the agents configuration
   try {
-    const { agentsIntegrations } = await import('./src/lib/agents.ts');
+    const { agentsIntegrations } = await import('./src/lib/agents.js');
     console.log('✅ Found', agentsIntegrations.length, 'agent integration(s)');
     
     for (const integration of agentsIntegrations) {
@@ -40,7 +40,7 @@ async function testAgentIntegration() {
       console.log(`   Registered agents: ${agentNames.join(', ')}`);
     }
   } catch (error) {
-    console.log('❌ Failed to load agents:', error.message);
+    console.log('❌ Failed to load agents:', error instanceof Error ? error.message : String(error));
   }
 
   console.log('\n3. Testing AG-UI protocol components...');
@@ -50,7 +50,7 @@ async function testAgentIntegration() {
     const { HttpAgent } = await import('@ag-ui/client');
     console.log('✅ HttpAgent from @ag-ui/client is available');
   } catch (error) {
-    console.log('❌ @ag-ui/client is not installed:', error.message);
+    console.log('❌ @ag-ui/client is not installed:', error instanceof Error ? error.message : String(error));
   }
 
   console.log('\nIntegration test complete!');
