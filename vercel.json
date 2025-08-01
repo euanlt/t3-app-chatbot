@@ -4,17 +4,5 @@
   "installCommand": "npm install",
   "env": {
     "SKIP_ENV_VALIDATION": "1"
-  },
-  "functions": {
-    "api/python/[...path].py": {
-      "runtime": "python3.9",
-      "maxDuration": 60
-    }
-  },
-  "rewrites": [
-    {
-      "source": "/api/agents/:path*",
-      "destination": "/api/python/:path*"
-    }
-  ]
+  }
 }
