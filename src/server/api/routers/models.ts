@@ -339,7 +339,8 @@ async function fetchOpenRouterModels(apiKey: string): Promise<ModelInfo[]> {
     }) || [];
 
     // Sort by popularity score (highest first)
-    models.sort((a, b) => b.popularity_score - a.popularity_score);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    models.sort((a: any, b: any) => b.popularity_score - a.popularity_score);
 
     return models;
   } catch (error) {
