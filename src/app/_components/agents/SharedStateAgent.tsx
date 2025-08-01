@@ -203,7 +203,7 @@ function extractRecipeFromMessage(content: string): Recipe | null {
       return null; // No recipe found
     }
     
-    const title = titleMatch ? titleMatch[1].trim() : "New Recipe";
+    const title = titleMatch && titleMatch[1] ? titleMatch[1].trim() : "New Recipe";
     
     // Process ingredients
     const ingredients = [];
@@ -219,10 +219,10 @@ function extractRecipeFromMessage(content: string): Recipe | null {
           let amount = "to taste";
           let name = ing;
           
-          if (parts.length >= 3) {
+          if (parts.length >= 3 && parts[0] && parts[1]) {
             amount = `${parts[0]} ${parts[1]}`;
             name = parts.slice(2).join(' ');
-          } else if (parts.length === 2) {
+          } else if (parts.length === 2 && parts[0] && parts[1]) {
             amount = parts[0];
             name = parts[1];
           }
@@ -305,8 +305,10 @@ function SharedStateChat({ agentId }: { agentId: string }) {
     ],
     handler: ({ snapshot }) => {
       console.log("Received state snapshot from agent:", snapshot);
-      if (snapshot?.recipe) {
-        const newRecipe = snapshot.recipe;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const snapshotObj = snapshot as any;
+      if (snapshotObj?.recipe) {
+        const newRecipe = snapshotObj.recipe as Recipe;
         setRecipe(newRecipe);
         setAgentState({ recipe: newRecipe });
         
@@ -515,7 +517,7 @@ function SharedStateChat({ agentId }: { agentId: string }) {
         <RecipeBuilder 
           recipe={recipe}
           updateRecipe={updateRecipe}
-          changedKeys={changedKeys}
+          changedKeys={changedKeys as string[]}
           isLoading={isLoading}
           appendMessage={appendMessage}
         />

@@ -218,7 +218,7 @@ function DocumentEditor({ agentId }: { agentId: string }) {
   const [placeholderVisible, setPlaceholderVisible] = useState(false);
   const [currentDocument, setCurrentDocument] = useState("");
   const { isLoading } = useCopilotChat();
-  const { messages, setMessages } = useCopilotMessagesContext();
+  const { messages } = useCopilotMessagesContext();
   const [lastMessageCount, setLastMessageCount] = useState(0);
   const [confirmationUI, setConfirmationUI] = useState<{ show: boolean; proposedDocument: string } | null>(null);
 
@@ -291,6 +291,7 @@ function DocumentEditor({ agentId }: { agentId: string }) {
       
       for (const message of newMessages) {
         // Type assertion for message properties
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const msg = message as any;
         if (msg.role === 'user') {
           // Track the user's message for context
