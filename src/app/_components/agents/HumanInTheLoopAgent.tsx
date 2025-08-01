@@ -165,14 +165,19 @@ function HumanInTheLoopChat({ agentName }: { agentId: string; agentName: string 
         steps = args;
       }
       // Check for value.steps (CustomEvent format)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       else if ((args as any)?.value?.steps && Array.isArray((args as any).value.steps)) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         steps = (args as any).value.steps;
       }
       // Check for element property (AG-UI protocol)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       else if ((args as any)?.element?.steps) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         steps = (args as any).element.steps;
       }
       // Check for type and steps at root
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       else if ((args as any)?.type === "task_approval" && (args as any)?.steps) {
         steps = args.steps;
       }
@@ -208,14 +213,16 @@ function HumanInTheLoopChat({ agentName }: { agentId: string; agentName: string 
         if (typeof step === 'string') {
           description = step;
         } else if (step && typeof step === 'object') {
-          description = (step as any).description || 
-                       (step as any).text || 
-                       (step as any).task ||
-                       (step as any).step ||
-                       (step as any).title ||
-                       (step as any).name ||
-                       (step as any).content ||
-                       ((step as any).id ? `Task ${(step as any).id}` : `Task ${index + 1}`);
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const stepObj = step as any;
+          description = stepObj.description || 
+                       stepObj.text || 
+                       stepObj.task ||
+                       stepObj.step ||
+                       stepObj.title ||
+                       stepObj.name ||
+                       stepObj.content ||
+                       (stepObj.id ? `Task ${stepObj.id}` : `Task ${index + 1}`);
         }
         
         return {
