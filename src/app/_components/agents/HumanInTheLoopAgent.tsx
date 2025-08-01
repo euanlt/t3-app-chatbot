@@ -321,20 +321,22 @@ function HumanInTheLoopChat({ agentName }: { agentId: string; agentName: string 
         
         if (typeof step === 'object' && step !== null) {
           // Try to extract description from various possible fields
-          let description = step.description || 
-                           step.text || 
-                           step.step || 
-                           step.instruction ||
-                           step.task ||
-                           step.name ||
-                           step.title;
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const stepObj = step as any;
+          let description = stepObj.description || 
+                           stepObj.text || 
+                           stepObj.step || 
+                           stepObj.instruction ||
+                           stepObj.task ||
+                           stepObj.name ||
+                           stepObj.title;
           
           // If no description found, check if it's an array or has a value property
           if (!description) {
             if (Array.isArray(step) && step[0]) {
               description = String(step[0]);
-            } else if (step.value !== undefined) {
-              description = String(step.value);
+            } else if (stepObj.value !== undefined) {
+              description = String(stepObj.value);
             } else {
               // Last resort: stringify but make it readable
               const stringified = JSON.stringify(step);
