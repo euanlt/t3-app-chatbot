@@ -2,15 +2,10 @@
 
 from __future__ import annotations
 
-import asyncio
 import os
 from textwrap import dedent
-from typing import AsyncIterator, List, Tuple
 
-from pydantic import BaseModel, Field
-
-from pydantic_ai import Agent, RunContext
-from .ag_ui_types import CustomEvent, EventType
+from pydantic_ai import Agent
 
 # Load environment variables
 from dotenv import load_dotenv
@@ -20,66 +15,41 @@ load_dotenv()
 os.environ['OPENROUTER_API_KEY'] = os.getenv('OPENROUTER_API_KEY', '')
 
 
-class DocumentState(BaseModel):
-    """State for the document being written."""
-    document: str = ''
-
-
-# Create the agent
+# Create the agent without custom tools to avoid conflicts
 agent = Agent(
     model='openrouter:openai/gpt-4o-mini',
     system_prompt=dedent("""
-        You are an AI document editor that helps users write and edit documents.
+        You are an AI document editor that helps users write and edit documents in markdown format.
         
-        When the user asks you to help with writing:
-        1. First, use get_document_content to see what's currently in the document
-        2. Use the ui_confirm_write tool to create or update content
-        3. The tool will show a preview of changes for user approval
+        CRITICAL RULE: When the user asks you to edit, complete, or continue their document,
+        you MUST ALWAYS respond with a code block containing the full document. NO EXCEPTIONS.
         
-        When the user asks you to edit existing content:
-        1. Use get_document_content to read the current document
-        2. Make the requested changes
-        3. Use ui_confirm_write to present the changes for approval
+        The current document content is provided as context: "Current document content in the editor"
         
-        Always provide helpful, well-structured content that matches the user's request.
-        Write in markdown format with proper headings, lists, and formatting.
+        When the user mentions:
+        - "complete", "continue", "finish", "add more", "write more"
+        - "the document", "the story", "it" (referring to their document)
+        - Any request to edit or modify content
+        
+        YOU MUST respond in EXACTLY this format:
+        
+        ```markdown
+        [PUT THE COMPLETE DOCUMENT HERE INCLUDING OLD AND NEW CONTENT]
+        ```
+        
+        EXAMPLE - If document contains "There was a boy" and user says "continue the story":
+        
+        ```markdown
+        There was a boy who lived in a small village by the sea. Every morning, 
+        he would walk along the shore, collecting shells and watching the waves...
+        ```
+        
+        NEVER say "I've updated the document" or "Here's the continuation" outside the code block.
+        The code block IS your response. Put ALL document content inside the code block.
+        
+        For general chat/questions, respond normally without code blocks.
     """)
 )
-
-
-# Tool to get current document content
-@agent.tool_plain
-async def get_document_content() -> CustomEvent:
-    """Get the current document content from the editor.
-    
-    Returns:
-        CustomEvent that requests the document content
-    """
-    return CustomEvent(
-        type=EventType.CUSTOM,
-        name="get_current_document",
-        value={}
-    )
-
-
-# Tool to write document with user confirmation
-@agent.tool_plain
-async def ui_confirm_write(
-    document: str
-) -> CustomEvent:
-    """Write or update the document content with user confirmation.
-    
-    Args:
-        document: The new document content in markdown format
-    
-    Returns:
-        CustomEvent that triggers the confirmation UI
-    """
-    return CustomEvent(
-        type=EventType.CUSTOM,
-        name="confirm_write_document",
-        value={"document": document}
-    )
 
 
 # Convert to AG-UI app

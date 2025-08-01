@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { useState, useEffect } from "react";
-import { CopilotKit, useCoAgent, useCopilotAction, useCopilotChat } from "@copilotkit/react-core";
+import { CopilotKit, useCoAgent, useCopilotAction, useCopilotChat, useCopilotReadable } from "@copilotkit/react-core";
 import { CopilotSidebar } from "@copilotkit/react-ui";
 import "@copilotkit/react-ui/styles.css";
 import { useEditor, EditorContent } from "@tiptap/react";
@@ -21,64 +21,184 @@ interface AgentState {
 
 const extensions = [StarterKit];
 
+// Function to extract document content from agent messages
+function extractDocumentFromMessage(content: string, userMessage?: string): string | null {
+  try {
+    console.log("Extracting document from message:", content.substring(0, 200) + "...");
+    
+    // Look for markdown code blocks first - these are always document content
+    // Match ```markdown, ```md, or just ```
+    // Try multiple regex patterns to catch different formats
+    const patterns = [
+      /```markdown\s*\n([\s\S]*?)\n```/,  // ```markdown
+      /```md\s*\n([\s\S]*?)\n```/,        // ```md
+      /```\s*\n([\s\S]*?)\n```/,          // just ```
+      /```([\s\S]*?)```/                   // minimal format
+    ];
+    
+    for (const pattern of patterns) {
+      const match = content.match(pattern);
+      if (match && match[1]) {
+        console.log("Found code block with pattern:", pattern.source);
+        return match[1].trim();
+      }
+    }
+    
+    // Check if this looks like substantial structured content
+    const lines = content.split('\n');
+    let documentLines = [];
+    let hasStructuredContent = false;
+    
+    for (const line of lines) {
+      // Detect markdown structures
+      if (line.match(/^#{1,6}\s+/) || // Headers
+          line.match(/^[-*+]\s+/) ||   // Unordered lists
+          line.match(/^\d+\.\s+/) ||    // Ordered lists
+          line.match(/^>\s+/) ||        // Blockquotes
+          line.match(/^\*\*.*\*\*/) ||  // Bold text
+          line.match(/^\*.*\*/) ||      // Italic text
+          line.match(/^---+$/)) {       // Horizontal rules
+        hasStructuredContent = true;
+      }
+      documentLines.push(line);
+    }
+    
+    // If we have structured markdown content and it's substantial, consider it document content
+    if (hasStructuredContent && documentLines.length > 3) {
+      // Remove common chat prefixes if present
+      let cleanedContent = documentLines.join('\n');
+      cleanedContent = cleanedContent
+        .replace(/^(Here's|Here is|I've written|I've created|I've completed|I'll continue).*?:\n\n/i, '')
+        .replace(/^(The completed story|The continuation|The document).*?:\n\n/i, '')
+        .trim();
+      
+      return cleanedContent;
+    }
+    
+    // If the content is long and looks like prose/story (paragraphs), extract it
+    if (content.length > 200) {
+      const paragraphs = content.split('\n\n').filter(p => p.trim().length > 50);
+      if (paragraphs.length >= 2) {
+        // Remove conversational prefixes
+        let cleanedContent = content
+          .replace(/^(Here's|Here is|I've written|I've created|I've completed|I'll continue).*?:\n\n/i, '')
+          .replace(/^(The completed story|The continuation|The document).*?:\n\n/i, '')
+          .trim();
+        
+        console.log("Extracted as prose/story content");
+        return cleanedContent;
+      }
+    }
+    
+    // Last resort: if user asked for completion and response mentions updating/continuing
+    // but no code block found, assume the whole response is document content
+    if (userMessage === 'document' && content.length > 100) {
+      console.log("Using fallback extraction for completion request");
+      // Remove common prefixes
+      let cleanedContent = content
+        .replace(/^(I've|I have|Here's|Here is|The).*?(updated|continued|completed|added|written).*?[:\.]\s*/i, '')
+        .trim();
+      
+      if (cleanedContent.length > 50) {
+        return cleanedContent;
+      }
+    }
+    
+    console.log("No document content found in message");
+    return null;
+  } catch (error) {
+    console.error("Error extracting document from message:", error);
+    return null;
+  }
+}
+
 // Component for confirming changes
 function ConfirmChanges({ 
-  args, 
-  respond, 
-  status, 
-  onReject, 
-  onConfirm 
+  currentDocument, 
+  proposedDocument,
+  onConfirm,
+  onReject
 }: { 
-  args: any;
-  respond: (response: any) => void;
-  status: string;
-  onReject: () => void;
+  currentDocument: string;
+  proposedDocument: string;
   onConfirm: () => void;
+  onReject: () => void;
 }) {
   const [accepted, setAccepted] = useState<boolean | null>(null);
   
+  // Generate diff visualization
+  const diffHtml = React.useMemo(() => {
+    const changes = diffWords(currentDocument || '', proposedDocument || '');
+    
+    return changes.map((part, index) => {
+      if (part.added) {
+        return (
+          <span key={index} className="bg-green-200 text-green-900 font-medium">
+            {part.value}
+          </span>
+        );
+      } else if (part.removed) {
+        return (
+          <span key={index} className="bg-red-200 text-red-900 line-through">
+            {part.value}
+          </span>
+        );
+      } else {
+        return <span key={index}>{part.value}</span>;
+      }
+    });
+  }, [currentDocument, proposedDocument]);
+  
   return (
     <div className="bg-white p-6 rounded shadow-lg border border-gray-200 mt-5 mb-5">
-      <h2 className="text-lg font-bold mb-4">Confirm Changes</h2>
-      <p className="mb-6">Do you want to accept the changes?</p>
+      <h2 className="text-lg font-bold mb-4">Confirm Document Changes</h2>
+      
+      <div className="mb-6">
+        <h3 className="font-semibold mb-2">Changes Preview:</h3>
+        <div className="bg-gray-50 p-4 rounded text-sm max-h-64 overflow-y-auto border border-gray-200">
+          <div className="whitespace-pre-wrap">
+            {diffHtml}
+          </div>
+        </div>
+        
+        <div className="flex gap-4 mt-3 text-xs">
+          <div className="flex items-center gap-1">
+            <span className="inline-block w-4 h-4 bg-green-200 border border-green-300 rounded"></span>
+            <span>Added</span>
+          </div>
+          <div className="flex items-center gap-1">
+            <span className="inline-block w-4 h-4 bg-red-200 border border-red-300 rounded"></span>
+            <span>Removed</span>
+          </div>
+        </div>
+      </div>
+      
       {accepted === null && (
         <div className="flex justify-end space-x-4">
           <button
-            className={`bg-gray-200 text-black py-2 px-4 rounded disabled:opacity-50 ${
-              status === "executing" ? "cursor-pointer" : "cursor-default"
-            }`}
-            disabled={status !== "executing"}
+            className="bg-gray-200 text-black py-2 px-4 rounded hover:bg-gray-300 transition-colors"
             onClick={() => {
-              if (respond) {
-                setAccepted(false);
-                onReject();
-                respond({ accepted: false });
-              }
+              setAccepted(false);
+              onReject();
             }}
           >
             Reject
           </button>
           <button
-            className={`bg-black text-white py-2 px-4 rounded disabled:opacity-50 ${
-              status === "executing" ? "cursor-pointer" : "cursor-default"
-            }`}
-            disabled={status !== "executing"}
+            className="bg-black text-white py-2 px-4 rounded hover:bg-gray-800 transition-colors"
             onClick={() => {
-              if (respond) {
-                setAccepted(true);
-                onConfirm();
-                respond({ accepted: true });
-              }
+              setAccepted(true);
+              onConfirm();
             }}
           >
-            Confirm
+            Accept Changes
           </button>
         </div>
       )}
       {accepted !== null && (
         <div className="flex justify-end">
           <div className="mt-4 bg-gray-200 text-black py-2 px-4 rounded inline-block">
-            {accepted ? "✓ Accepted" : "✗ Rejected"}
+            {accepted ? "✓ Changes Accepted" : "✗ Changes Rejected"}
           </div>
         </div>
       )}
@@ -98,7 +218,9 @@ function DocumentEditor({ agentId }: { agentId: string }) {
   
   const [placeholderVisible, setPlaceholderVisible] = useState(false);
   const [currentDocument, setCurrentDocument] = useState("");
-  const { isLoading } = useCopilotChat();
+  const { isLoading, appendMessage, messages, setMessages } = useCopilotChat();
+  const [lastMessageCount, setLastMessageCount] = useState(0);
+  const [confirmationUI, setConfirmationUI] = useState<{ show: boolean; proposedDocument: string } | null>(null);
 
   const {
     state: agentState,
@@ -147,7 +269,8 @@ function DocumentEditor({ agentId }: { agentId: string }) {
   const text = editor?.getText() || "";
 
   useEffect(() => {
-    setPlaceholderVisible(text.length === 0);
+    // Hide placeholder immediately when there's any text
+    setPlaceholderVisible(!text || text.length === 0);
   }, [text]);
 
   useEffect(() => {
@@ -160,55 +283,85 @@ function DocumentEditor({ agentId }: { agentId: string }) {
     }
   }, [text, isLoading, currentDocument, setAgentState]);
 
-  // Add action to provide document context to the agent
-  useCopilotAction({
-    name: "get_current_document",
-    description: "Get the current document content from the editor",
-    parameters: [],
-    handler: () => {
-      const currentText = editor?.getText() || "";
-      console.log("Agent requested current document:", currentText);
-      return {
-        document: currentText,
-        length: currentText.length,
-        isEmpty: currentText.length === 0
-      };
-    }
-  });
-
-  // Action to write the document with confirmation UI
-  useCopilotAction({
-    name: "confirm_write_document",
-    description: "Present the proposed changes to the user for review",
-    parameters: [
-      {
-        name: "document",
-        type: "string",
-        description: "The full updated document in markdown format",
-      },
-    ],
-    renderAndWaitForResponse({ args, status, respond }) {
-      if (status === "executing") {
-        return (
-          <ConfirmChanges
-            args={args}
-            respond={respond}
-            status={status}
-            onReject={() => {
-              editor?.commands.setContent(fromMarkdown(currentDocument));
-              setAgentState({ document: currentDocument });
-            }}
-            onConfirm={() => {
-              editor?.commands.setContent(fromMarkdown(agentState?.document || ""));
-              setCurrentDocument(agentState?.document || "");
-              setAgentState({ document: agentState?.document || "" });
-            }}
-          />
-        );
+  // Auto-pass document content to chat and extract changes from responses
+  useEffect(() => {
+    if (messages && messages.length > lastMessageCount) {
+      const newMessages = messages.slice(lastMessageCount);
+      let lastUserMessage = '';
+      
+      for (const message of newMessages) {
+        if (message.role === 'user') {
+          // Track the user's message for context
+          lastUserMessage = message.content || '';
+          console.log("User message:", lastUserMessage);
+          console.log("Current document in editor:", currentDocument);
+        } else if (message.role === 'assistant' && message.content) {
+          console.log("Assistant message received, checking for document content");
+          console.log("Message content preview:", message.content.substring(0, 300));
+          
+          // Always try to extract document content when user asks for completion/continuation
+          const isCompletionRequest = lastUserMessage && (
+            lastUserMessage.toLowerCase().includes('complete') ||
+            lastUserMessage.toLowerCase().includes('continue') ||
+            lastUserMessage.toLowerCase().includes('finish') ||
+            lastUserMessage.toLowerCase().includes('add') ||
+            lastUserMessage.toLowerCase().includes('write') ||
+            lastUserMessage.toLowerCase().includes('more') ||
+            lastUserMessage.toLowerCase().includes('story') ||
+            lastUserMessage.toLowerCase().includes('document')
+          );
+          
+          console.log("Is completion request:", isCompletionRequest);
+          
+          // Extract content if it looks like document content or user asked for completion
+          const extractedContent = extractDocumentFromMessage(message.content, isCompletionRequest ? 'document' : lastUserMessage);
+          
+          if (extractedContent) {
+            console.log("Extracted document content from message:", extractedContent);
+            console.log("Current document:", currentDocument);
+            console.log("Content differs:", extractedContent !== currentDocument);
+            
+            // Show confirmation UI for the proposed changes (even if same, user might want to review)
+            console.log("Document changes detected, showing confirmation UI");
+            setConfirmationUI({ 
+              show: true, 
+              proposedDocument: extractedContent 
+            });
+          } else {
+            console.log("No document content extracted from message");
+          }
+        }
       }
-      return null;
-    },
+      
+      setLastMessageCount(messages.length);
+    }
+  }, [messages, lastMessageCount, currentDocument, setConfirmationUI]);
+
+  // Make document content readable to the AI
+  useCopilotReadable({
+    description: "Current document content in the editor",
+    value: currentDocument || "[Document is empty]",
   });
+  
+  // Log when document changes
+  useEffect(() => {
+    console.log("Document readable context updated:", currentDocument);
+  }, [currentDocument]);
+
+  // Function to handle document confirmation
+  const handleDocumentConfirmation = (accepted: boolean, proposedDocument: string) => {
+    if (accepted) {
+      const markdown = fromMarkdown(proposedDocument);
+      editor?.commands.setContent(markdown);
+      setCurrentDocument(proposedDocument);
+      setAgentState({ document: proposedDocument });
+    } else {
+      // Revert to current document
+      const markdown = fromMarkdown(currentDocument);
+      editor?.commands.setContent(markdown);
+    }
+    setConfirmationUI(null);
+  };
 
   return (
     <div className="relative min-h-screen w-full">
@@ -218,6 +371,20 @@ function DocumentEditor({ agentId }: { agentId: string }) {
         </div>
       )}
       <EditorContent editor={editor} />
+      
+      {/* Confirmation UI overlay */}
+      {confirmationUI?.show && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="max-w-2xl w-full mx-4">
+            <ConfirmChanges
+              currentDocument={currentDocument}
+              proposedDocument={confirmationUI.proposedDocument}
+              onConfirm={() => handleDocumentConfirmation(true, confirmationUI.proposedDocument)}
+              onReject={() => handleDocumentConfirmation(false, confirmationUI.proposedDocument)}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }
