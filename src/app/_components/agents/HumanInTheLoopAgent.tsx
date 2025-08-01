@@ -352,7 +352,7 @@ function HumanInTheLoopChat({ agentName }: { agentId: string; agentName: string 
           
           return {
             description: String(description || 'Unnamed step'),
-            status: step.status || "enabled"
+            status: stepObj.status || "enabled"
           };
         }
         
