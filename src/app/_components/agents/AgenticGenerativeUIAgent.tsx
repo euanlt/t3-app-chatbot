@@ -177,7 +177,7 @@ function AgenticGenerativeUIChat({ agentName }: { agentId: string; agentName: st
       },
       {
         name: "steps",
-        type: "array",
+        type: "object[]",
         description: "Array of task steps with id, title, and description"
       }
     ],

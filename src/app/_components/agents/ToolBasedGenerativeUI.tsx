@@ -240,7 +240,7 @@ function GenerativeChat({ agentName }: { agentId: string; agentName: string }) {
       },
       {
         name: "lines",
-        type: "array",
+        type: "string[]",
         description: "Array of haiku lines"
       },
       {
@@ -253,9 +253,9 @@ function GenerativeChat({ agentName }: { agentId: string; agentName: string }) {
       console.log('UI display haiku called:', { title, lines, theme });
       
       const haikuData: HaikuContent = {
-        title: title || 'Untitled Haiku',
-        lines: lines || [],
-        theme: theme || 'unknown'
+        title: String(title || 'Untitled Haiku'),
+        lines: Array.isArray(lines) ? lines.map(String) : [],
+        theme: String(theme || 'unknown')
       };
       
       const newContent = {
@@ -285,12 +285,12 @@ function GenerativeChat({ agentName }: { agentId: string; agentName: string }) {
       },
       {
         name: "ingredients",
-        type: "array",
+        type: "string[]",
         description: "Array of ingredients"
       },
       {
         name: "steps",
-        type: "array",
+        type: "string[]",
         description: "Array of cooking steps"
       },
       {
@@ -308,11 +308,11 @@ function GenerativeChat({ agentName }: { agentId: string; agentName: string }) {
       console.log('UI display recipe called:', { name, ingredients, steps, prep_time, servings });
       
       const recipeData: RecipeContent = {
-        name: name || 'Untitled Recipe',
-        ingredients: ingredients || [],
-        steps: steps || [],
-        prep_time: prep_time || 'Unknown',
-        servings: servings || 1
+        name: String(name || 'Untitled Recipe'),
+        ingredients: Array.isArray(ingredients) ? ingredients.map(String) : [],
+        steps: Array.isArray(steps) ? steps.map(String) : [],
+        prep_time: String(prep_time || 'Unknown'),
+        servings: Number(servings) || 1
       };
       
       const newContent = {
@@ -408,19 +408,19 @@ function GenerativeChat({ agentName }: { agentId: string; agentName: string }) {
               <div key={item.id}>
                 {item.type === "haiku" && (
                   <HaikuDisplay 
-                    haiku={item.content} 
+                    haiku={item.content as HaikuContent} 
                     onApply={() => handleApply(item.id)} 
                   />
                 )}
                 {item.type === "recipe" && (
                   <RecipeDisplay 
-                    recipe={item.content} 
+                    recipe={item.content as RecipeContent} 
                     onApply={() => handleApply(item.id)} 
                   />
                 )}
                 {item.type === "code" && (
                   <CodeDisplay 
-                    code={item.content} 
+                    code={item.content as CodeSnippet} 
                     onApply={() => handleApply(item.id)} 
                   />
                 )}

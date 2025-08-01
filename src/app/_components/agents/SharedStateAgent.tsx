@@ -280,7 +280,7 @@ function extractRecipeFromMessage(content: string): Recipe | null {
 }
 
 // Main chat component with shared recipe state
-function SharedStateChat({ agentId }: { agentId: string; agentName: string }) {
+function SharedStateChat({ agentId, agentName }: { agentId: string; agentName: string }) {
   const { state: agentState, setState: setAgentState } = useCoAgent<RecipeAgentState>({
     name: agentId,
     initialState: INITIAL_STATE
@@ -531,7 +531,7 @@ function SharedStateChat({ agentId }: { agentId: string; agentName: string }) {
   );
 }
 
-export default function SharedStateAgent({ agentId }: SharedStateAgentProps) {
+export default function SharedStateAgent({ agentId, agentName }: SharedStateAgentProps) {
   return (
     <CopilotKit 
       runtimeUrl="/api/copilotkit"

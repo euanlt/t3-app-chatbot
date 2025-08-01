@@ -17,7 +17,6 @@ export async function POST(request: NextRequest) {
   const agents = await integration.agents();
   
   const runtime = new CopilotRuntime({
-    // @ts-expect-error - The types might not match exactly but this works
     agents,
   });
   
