@@ -7,7 +7,7 @@
   },
   "functions": {
     "api/python/[...path].py": {
-      "runtime": "python@3.12",
+      "runtime": "python3.9",
       "maxDuration": 60
     }
   },
