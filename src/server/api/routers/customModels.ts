@@ -238,7 +238,7 @@ export const customModelsRouter = createTRPCRouter({
         const apiKey = await db.userApiKey.upsert({
           where: {
             userId_provider_keyName: {
-              userId: input.userId,
+              userId: input.userId || "default-user",
               provider: input.provider,
               keyName: input.keyName,
             },
@@ -252,7 +252,7 @@ export const customModelsRouter = createTRPCRouter({
             provider: input.provider,
             keyName: input.keyName,
             encryptedKey,
-            userId: input.userId,
+            userId: input.userId || "default-user",
           },
           select: {
             id: true,
