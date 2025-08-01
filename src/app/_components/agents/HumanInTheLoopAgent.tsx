@@ -179,7 +179,8 @@ function HumanInTheLoopChat({ agentName }: { agentId: string; agentName: string 
       // Check for type and steps at root
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       else if ((args as any)?.type === "task_approval" && (args as any)?.steps) {
-        steps = args.steps;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        steps = (args as any).steps;
       }
       
       console.log("Extracted steps:", JSON.stringify(steps, null, 2));
